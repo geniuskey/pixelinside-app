@@ -1,0 +1,1509 @@
+</html><!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이크로 렌즈 어레이 시각화 도구</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.16.1/plotly.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #3498db, #9b59b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 10px;
+        }
+        
+        .control-section {
+            margin-bottom: 10px;
+        }
+        
+        .control-header {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .control-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-header .arrow {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+        
+        .control-header.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+        
+        .control-content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .control-content.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+        }
+        
+        .control-item {
+            margin-bottom: 15px;
+        }
+        
+        .control-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .control-item input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+        
+        .control-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-item select, .control-item button {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .control-item select:focus, .control-item button:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: right;
+        }
+        
+        .view-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .view-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .view-btn.active {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        
+        .plot-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-panel h3 {
+            margin-top: 0;
+        }
+        
+        .formula-compact {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+        }
+        
+        .math-formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 3px;
+            display: inline;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 마이크로 렌즈 어레이 시각화 도구</h1>
+        
+        <div class="controls">
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('config')">
+                    <span>⚙️ 설정 관리</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content collapsed" id="config-content">
+                    <div class="control-item">
+                        <button onclick="exportConfiguration()">📤 설정 내보내기</button>
+                    </div>
+                    <div class="control-item">
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importConfiguration(event)">
+                        <button onclick="document.getElementById('importFile').click()">📥 설정 가져오기</button>
+                    </div>
+                    <div class="control-item">
+                        <button onclick="resetToDefaults()">🔄 기본값 복원</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('array')">
+                    <span>🔢 배열 구성</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content" id="array-content">
+                    <div class="control-item">
+                        <label for="arrayConfig">배열 구성:</label>
+                        <select id="arrayConfig">
+                            <option value="1x1" selected>1×1 (단일 렌즈)</option>
+                            <option value="2x1">2×1 (세로 2개)</option>
+                            <option value="1x2">1×2 (가로 2개)</option>
+                            <option value="2x2">2×2 (2×2 배열)</option>
+                            <option value="3x3">3×3 (3×3 배열)</option>
+                            <option value="4x4">4×4 (4×4 배열)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="spacingX">렌즈 간격 X (μm):</label>
+                        <input type="range" id="spacingX" min="0.1" max="2.0" step="0.01" value="1.0">
+                        <div class="value-display" id="spacingXValue">1.0 μm</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="spacingY">렌즈 간격 Y (μm):</label>
+                        <input type="range" id="spacingY" min="0.1" max="2.0" step="0.01" value="1.0">
+                        <div class="value-display" id="spacingYValue">1.0 μm</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('lens')">
+                    <span>🔍 렌즈 형태 파라미터</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content" id="lens-content">
+                    <div class="control-item">
+                        <label for="Rx">반지름 X (Rx, μm):</label>
+                        <input type="range" id="Rx" min="0.1" max="3.0" step="0.01" value="1.3">
+                        <div class="value-display" id="RxValue">1.3 μm</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="Ry">반지름 Y (Ry, μm):</label>
+                        <input type="range" id="Ry" min="0.1" max="3.0" step="0.01" value="1.3">
+                        <div class="value-display" id="RyValue">1.3 μm</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="h">높이 (h, μm):</label>
+                        <input type="range" id="h" min="0.1" max="1.0" step="0.01" value="0.5">
+                        <div class="value-display" id="hValue">0.5 μm</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="n">슈퍼엘립스 지수 (n):</label>
+                        <input type="range" id="n" min="1.0" max="5.0" step="0.05" value="2.0">
+                        <div class="value-display" id="nValue">2.0</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="alpha">곡률 파라미터 (α):</label>
+                        <input type="range" id="alpha" min="0.1" max="2.0" step="0.01" value="1.0">
+                        <div class="value-display" id="alphaValue">1.0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('visual')">
+                    <span>🎨 시각화 설정</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content collapsed" id="visual-content">
+                    <div class="control-item">
+                        <label for="resolution">해상도:</label>
+                        <input type="range" id="resolution" min="50" max="200" step="10" value="100">
+                        <div class="value-display" id="resolutionValue">100</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="colormap">색상 맵:</label>
+                        <select id="colormap">
+                            <option value="Viridis">Viridis</option>
+                            <option value="Plasma">Plasma</option>
+                            <option value="Inferno">Inferno</option>
+                            <option value="Magma">Magma</option>
+                            <option value="Jet">Jet</option>
+                            <option value="Hot">Hot</option>
+                            <option value="Cool">Cool</option>
+                            <option value="Rainbow">Rainbow</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('ray')">
+                    <span>🌈 광선 추적 설정</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content collapsed" id="ray-content">
+                    <div class="control-item">
+                        <label for="numRays">광선 수 (per 렌즈):</label>
+                        <input type="range" id="numRays" min="5" max="50" step="5" value="20">
+                        <div class="value-display" id="numRaysValue">20</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="refractiveIndex">굴절률 (n):</label>
+                        <input type="range" id="refractiveIndex" min="1.2" max="3.0" step="0.1" value="1.5">
+                        <div class="value-display" id="refractiveIndexValue">1.5</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="propagationDistance">전파 거리 (μm):</label>
+                        <input type="range" id="propagationDistance" min="1" max="20" step="1" value="10">
+                        <div class="value-display" id="propagationDistanceValue">10 μm</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="raySpacing">광선 간격:</label>
+                        <input type="range" id="raySpacing" min="0.1" max="1.0" step="0.1" value="0.3">
+                        <div class="value-display" id="raySpacingValue">0.3</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="view-controls">
+            <button class="view-btn" id="viewContour">컨투어 뷰</button>
+            <button class="view-btn active" id="view2D">2D 등고선 뷰</button>
+            <button class="view-btn" id="view3D">3D 서피스 뷰</button>
+            <button class="view-btn" id="viewRay2D">2D 광선 추적</button>
+            <button class="view-btn" id="viewRay3D">3D 광선 추적</button>
+        </div>
+        
+        <div class="plot-container">
+            <div id="plot" style="width: 100%; height: 600px;"></div>
+        </div>
+        
+        <div class="plot-container" id="multiViewContainer" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 800px;">
+                <div id="topView" style="height: 380px;"></div>
+                <div id="sideViewXZ" style="height: 380px;"></div>
+                <div id="sideViewYZ" style="height: 380px;"></div>
+                <div id="diagonalView" style="height: 380px;"></div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>📐 수학적 모델</h3>
+            <div class="formula-compact">
+                <strong>슈퍼엘립스 방정식:</strong> <span class="math-formula">|x/Rx|^n + |y/Ry|^n = 1</span><br>
+                <strong>렌즈 높이 방정식:</strong> <span class="math-formula">z(r) = h × (1 - r²)^(1/(2α))</span><br>
+                <strong>거리 공식:</strong> <span class="math-formula">r = (|x/Rx|^n + |y/Ry|^n)^(1/n)</span><br>
+                <strong>스넬의 법칙:</strong> <span class="math-formula">n₁sin(θ₁) = n₂sin(θ₂)</span><br>
+                <strong>파라미터:</strong> Rx,Ry(반지름), h(높이), n(슈퍼엘립스 지수), α(곡률), 모든 치수는 μm 단위
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = '2D';
+        
+        // 섹션 토글 함수
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const header = content.previousElementSibling;
+            
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+        }
+        
+        // 파라미터 값 업데이트 함수
+        function updateValueDisplay(id, value) {
+            let displayValue = value;
+            if (id === 'Rx' || id === 'Ry' || id === 'h' || id === 'spacingX' || id === 'spacingY' || id === 'propagationDistance') {
+                displayValue = value + ' μm';
+            }
+            const element = document.getElementById(id + 'Value');
+            if (element) {
+                element.textContent = displayValue;
+            }
+        }
+        
+        // 타원형 슈퍼엘립스 거리 계산
+        function superellipseDistance(x, y, Rx, Ry, n) {
+            return Math.pow(Math.pow(Math.abs(x / Rx), n) + Math.pow(Math.abs(y / Ry), n), 1/n);
+        }
+        
+        // 렌즈 높이 계산
+        function lensHeight(r, h, alpha) {
+            if (r > 1) return 0;
+            return h * Math.pow(1 - r * r, 1 / (2 * alpha));
+        }
+        
+        // 단일 렌즈 서피스 생성
+        function mla_surface(Rx, Ry, h, n, alpha, resolution, sizeX, sizeY) {
+            const stepX = (2 * sizeX) / resolution;
+            const stepY = (2 * sizeY) / resolution;
+            const x = [];
+            const y = [];
+            const z = [];
+            
+            for (let i = 0; i <= resolution; i++) {
+                const xi = -sizeX + i * stepX;
+                const row_y = [];
+                const row_z = [];
+                
+                for (let j = 0; j <= resolution; j++) {
+                    const yi = -sizeY + j * stepY;
+                    const r = superellipseDistance(xi, yi, Rx, Ry, n);
+                    
+                    let zi = 0;
+                    if (r <= 1) {
+                        zi = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                    }
+                    
+                    row_y.push(yi);
+                    row_z.push(zi);
+                }
+                
+                x.push(xi);
+                y.push(row_y);
+                z.push(row_z);
+            }
+            
+            return { x, y, z };
+        }
+        
+        // 다중 렌즈 배열 데이터 생성
+        function generateLensArray(config, Rx, Ry, h, n, alpha, resolution, spacingX, spacingY) {
+            const [rows, cols] = config.split('x').map(Number);
+            
+            // 전체 영역 크기 계산
+            const totalWidth = cols * spacingX;
+            const totalHeight = rows * spacingY;
+            const maxSizeX = totalWidth / 2;
+            const maxSizeY = totalHeight / 2;
+            
+            const stepX = totalWidth / resolution;
+            const stepY = totalHeight / resolution;
+            const x = [];
+            const y = [];
+            const z = [];
+            
+            for (let i = 0; i <= resolution; i++) {
+                const xi = -maxSizeX + i * stepX;
+                const row_y = [];
+                const row_z = [];
+                
+                for (let j = 0; j <= resolution; j++) {
+                    const yi = -maxSizeY + j * stepY;
+                    let maxZ = 0;
+                    
+                    // 각 렌즈 위치에서 높이 계산
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            const centerX = (col - (cols - 1) / 2) * spacingX;
+                            const centerY = (row - (rows - 1) / 2) * spacingY;
+                            
+                            const relX = xi - centerX;
+                            const relY = yi - centerY;
+                            
+                            const r = superellipseDistance(relX, relY, Rx, Ry, n);
+                            
+                            let zi = 0;
+                            if (r <= 1) {
+                                zi = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                            }
+                            
+                            maxZ = Math.max(maxZ, zi);
+                        }
+                    }
+                    
+                    row_y.push(yi);
+                    row_z.push(maxZ);
+                }
+                
+                x.push(xi);
+                y.push(row_y);
+                z.push(row_z);
+            }
+            
+            return { x, y, z };
+        }
+        
+        // 광선 추적 관련 함수들
+        
+        // 렌즈 표면의 법선 벡터 계산
+        function calculateSurfaceNormal(x, y, Rx, Ry, h, n, alpha) {
+            const r = superellipseDistance(x, y, Rx, Ry, n);
+            if (r >= 1) return { nx: 0, ny: 0, nz: 1 }; // 평면 영역
+            
+            // 수치적 미분으로 법선 계산
+            const eps = 0.001;
+            const z0 = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+            
+            const rx = superellipseDistance(x + eps, y, Rx, Ry, n);
+            const ry = superellipseDistance(x, y + eps, Rx, Ry, n);
+            
+            let zx = 0, zy = 0;
+            if (rx < 1) zx = h * Math.pow(1 - rx * rx, 1 / (2 * alpha));
+            if (ry < 1) zy = h * Math.pow(1 - ry * ry, 1 / (2 * alpha));
+            
+            const dzdx = (zx - z0) / eps;
+            const dzdy = (zy - z0) / eps;
+            
+            // 법선 벡터 정규화
+            const length = Math.sqrt(dzdx * dzdx + dzdy * dzdy + 1);
+            return { nx: -dzdx / length, ny: -dzdy / length, nz: 1 / length };
+        }
+        
+        // 스넬의 법칙을 이용한 굴절 계산
+        function refractRay(incident, normal, n1, n2) {
+            const { dx, dy, dz } = incident;
+            const { nx, ny, nz } = normal;
+            
+            // 입사각 계산
+            const cosI = -(dx * nx + dy * ny + dz * nz);
+            const eta = n1 / n2;
+            const k = 1 - eta * eta * (1 - cosI * cosI);
+            
+            if (k < 0) {
+                // 전반사 - 반사만 발생
+                return {
+                    dx: dx + 2 * cosI * nx,
+                    dy: dy + 2 * cosI * ny,
+                    dz: dz + 2 * cosI * nz
+                };
+            }
+            
+            const sqrtK = Math.sqrt(k);
+            return {
+                dx: eta * dx + (eta * cosI - sqrtK) * nx,
+                dy: eta * dy + (eta * cosI - sqrtK) * ny,
+                dz: eta * dz + (eta * cosI - sqrtK) * nz
+            };
+        }
+        
+        // 특정 렌즈와 광선의 교점 검출
+        function findRayLensIntersection(rayX, rayY, lensCenterX, lensCenterY, Rx, Ry, h, n, alpha) {
+            // 렌즈 중심 기준 상대 좌표
+            const relX = rayX - lensCenterX;
+            const relY = rayY - lensCenterY;
+            
+            // 이 렌즈 범위 내에 있는지 확인
+            const r = superellipseDistance(relX, relY, Rx, Ry, n);
+            if (r > 1) {
+                return null; // 이 렌즈 범위 밖
+            }
+            
+            // 렌즈 표면 높이 계산
+            const lensHeight = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+            return {
+                x: rayX,
+                y: rayY,
+                z: lensHeight,
+                lensCenter: { x: lensCenterX, y: lensCenterY },
+                relativePos: { x: relX, y: relY },
+                r: r
+            };
+        }
+        
+        // 배열의 모든 렌즈와 광선의 교점 찾기
+        function findAllLensIntersections(rayX, rayY, config, spacingX, spacingY, Rx, Ry, h, n, alpha) {
+            const [rows, cols] = config.split('x').map(Number);
+            const intersections = [];
+            
+            for (let lensRow = 0; lensRow < rows; lensRow++) {
+                for (let lensCol = 0; lensCol < cols; lensCol++) {
+                    const lensCenterX = (lensCol - (cols - 1) / 2) * spacingX;
+                    const lensCenterY = (lensRow - (rows - 1) / 2) * spacingY;
+                    
+                    const intersection = findRayLensIntersection(
+                        rayX, rayY, lensCenterX, lensCenterY, Rx, Ry, h, n, alpha
+                    );
+                    
+                    if (intersection) {
+                        intersection.lensIndex = { row: lensRow, col: lensCol };
+                        intersections.push(intersection);
+                    }
+                }
+            }
+            
+            // 가장 높은 교점 선택 (위에 있는 렌즈)
+            if (intersections.length === 0) return null;
+            
+            return intersections.reduce((highest, current) => 
+                current.z > highest.z ? current : highest
+            );
+        }
+        
+        // 배열을 고려한 광선 추적
+        function traceRayThroughLensArray(startX, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance) {
+            const path = [{ x: startX, y: startY, z: h + 2 }]; // 시작점 (렌즈 위)
+            
+            // 렌즈 배열과의 교점 찾기
+            const intersection = findAllLensIntersections(startX, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha);
+            
+            if (!intersection) {
+                // 어떤 렌즈와도 만나지 않으면 직진
+                const endX = startX;
+                const endY = startY;
+                const endZ = -propagationDistance;
+                path.push({ x: endX, y: endY, z: endZ });
+				return { path, focused: false, endPoint: { x: endX, y: endY, z: endZ }, lensIndex: null };
+            }
+            
+            // 렌즈 표면에 도달
+            path.push(intersection);
+            
+            // 해당 렌즈에서의 법선 벡터 계산 (렌즈 중심 기준)
+            const normal = calculateSurfaceNormal(
+                intersection.relativePos.x, 
+                intersection.relativePos.y, 
+                Rx, Ry, h, n, alpha
+            );
+            
+            // 굴절된 방향 계산
+            const incident = { dx: 0, dy: 0, dz: -1 }; // 수직 입사
+            const refracted = refractRay(incident, normal, 1.0, refractiveIndex);
+            
+            // 굴절된 광선으로 전파
+            const endX = intersection.x + refracted.dx * propagationDistance;
+            const endY = intersection.y + refracted.dy * propagationDistance;
+            const endZ = intersection.z + refracted.dz * propagationDistance;
+            
+            path.push({ x: endX, y: endY, z: endZ });
+            
+            return { 
+                path, 
+                focused: true, 
+                endPoint: { x: endX, y: endY, z: endZ },
+                lensIndex: intersection.lensIndex,
+                intersection: intersection
+            };
+        }
+        
+        // 집속점 계산
+        function calculateFocalPoint(endPoints) {
+            if (endPoints.length === 0) return null;
+            
+            let sumX = 0, sumY = 0, sumZ = 0;
+            let count = 0;
+            
+            endPoints.forEach(point => {
+                if (point.focused) {
+                    sumX += point.endPoint.x;
+                    sumY += point.endPoint.y;
+                    sumZ += point.endPoint.z;
+                    count++;
+                }
+            });
+            
+            if (count === 0) return null;
+            
+            return {
+                x: sumX / count,
+                y: sumY / count,
+                z: sumZ / count,
+                count: count
+            };
+        }
+        
+        // 2D 등고선 플롯 (4개 뷰 포함)
+        function plot2D(data, colormap) {
+            // 메인 플롯 숨기고 멀티뷰 보여주기
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+            
+            // 단일 렌즈 데이터 생성 (side view와 diagonal view용)
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const singleLensData = mla_surface(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5);
+            
+            // X 좌표의 최대값 계산하여 y축 범위 설정
+            const maxX = Math.max(...singleLensData.x.map(Math.abs));
+            const yAxisMax = maxX * 2;
+            
+            // Top View (등고선)
+            const topTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'contour',
+                colorscale: colormap,
+                showscale: true,
+                contours: {
+                    showlines: true,
+                    coloring: 'fill'
+                }
+            };
+            
+            const topLayout = {
+                title: 'Top View (Z축 등고선)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View XZ (y=0 단면) - 단일 렌즈만
+            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
+            const xzTrace = {
+                x: singleLensData.x,
+                y: singleLensData.z.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 y=0 단면',
+                line: { color: 'blue', width: 2 }
+            };
+            
+            const xzLayout = {
+                title: 'Side View XZ (단일 렌즈, y=0)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View YZ (x=0 단면) - 단일 렌즈만
+            const centerXIndex = Math.floor(singleLensData.x.length / 2);
+            const yzTrace = {
+                x: singleLensData.y[0],
+                y: singleLensData.z[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=0 단면',
+                line: { color: 'red', width: 2 }
+            };
+            
+            const yzLayout = {
+                title: 'Side View YZ (단일 렌즈, x=0)',
+                xaxis: { title: 'Y (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Diagonal View (x=y 단면) - 단일 렌즈만
+            const diagonalX = [];
+            const diagonalZ = [];
+            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
+            
+            for (let i = 0; i < minSize; i++) {
+                const xVal = singleLensData.x[i];
+                const zVal = singleLensData.z[i][i];
+                diagonalX.push(xVal);
+                diagonalZ.push(zVal);
+            }
+            
+            const diagTrace = {
+                x: diagonalX,
+                y: diagonalZ,
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=y 단면',
+                line: { color: 'green', width: 2 }
+            };
+            
+            const diagLayout = {
+                title: 'Diagonal View (단일 렌즈, x=y)',
+                xaxis: { title: 'X=Y (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            Plotly.newPlot('topView', [topTrace], topLayout);
+            Plotly.newPlot('sideViewXZ', [xzTrace], xzLayout);
+            Plotly.newPlot('sideViewYZ', [yzTrace], yzLayout);
+            Plotly.newPlot('diagonalView', [diagTrace], diagLayout);
+        }
+        
+        // 3D 서피스 플롯
+        function plot3D(data, colormap) {
+            // 멀티뷰 숨기고 메인 플롯 보여주기
+            document.getElementById('multiViewContainer').style.display = 'none';
+            document.getElementById('plot').parentElement.style.display = 'block';
+            
+            // X 좌표의 최대값 계산
+            const maxX = Math.max(...data.x);
+            const zMax = maxX * 2;
+            
+            const trace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'surface',
+                colorscale: colormap,
+                showscale: true,
+                colorbar: {
+                    title: '높이 (μm)'
+                }
+            };
+            
+            const layout = {
+                title: '3D 서피스 뷰 - 마이크로 렌즈 어레이',
+                scene: {
+                    xaxis: { title: 'X 좌표 (μm)' },
+                    yaxis: { title: 'Y 좌표 (μm)' },
+                    zaxis: { 
+                        title: 'Z 좌표 (높이, μm)',
+                        range: [0, zMax]
+                    },
+                    aspectmode: 'cube'
+                }
+            };
+            
+            Plotly.newPlot('plot', [trace], layout);
+        }
+        
+        // 컨투어 플롯 (4개 뷰 포함)
+        function plotContour(data, colormap) {
+            // 메인 플롯 숨기고 멀티뷰 보여주기
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+            
+            // 단일 렌즈 데이터 생성 (side view와 diagonal view용)
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const singleLensData = mla_surface(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5);
+            
+            // X 좌표의 최대값 계산하여 y축 범위 설정
+            const maxX = Math.max(...singleLensData.x.map(Math.abs));
+            const yAxisMax = maxX * 2;
+            
+            // Top View (컨투어 라인)
+            const topTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'contour',
+                colorscale: colormap,
+                showscale: true,
+                contours: {
+                    showlines: true,
+                    coloring: 'lines'
+                }
+            };
+            
+            const topLayout = {
+                title: 'Top View (등고선)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View XZ (y=0 단면) - 단일 렌즈만
+            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
+            const xzTrace = {
+                x: singleLensData.x,
+                y: singleLensData.z.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 y=0 단면',
+                line: { color: 'blue', width: 2 }
+            };
+            
+            const xzLayout = {
+                title: 'Side View XZ (단일 렌즈, y=0)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View YZ (x=0 단면) - 단일 렌즈만
+            const centerXIndex = Math.floor(singleLensData.x.length / 2);
+            const yzTrace = {
+                x: singleLensData.y[0],
+                y: singleLensData.z[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=0 단면',
+                line: { color: 'red', width: 2 }
+            };
+            
+            const yzLayout = {
+                title: 'Side View YZ (단일 렌즈, x=0)',
+                xaxis: { title: 'Y (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Diagonal View (x=y 단면) - 단일 렌즈만
+            const diagonalX = [];
+            const diagonalZ = [];
+            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
+            
+            for (let i = 0; i < minSize; i++) {
+                const xVal = singleLensData.x[i];
+                const zVal = singleLensData.z[i][i];
+                diagonalX.push(xVal);
+                diagonalZ.push(zVal);
+            }
+            
+            const diagTrace = {
+                x: diagonalX,
+                y: diagonalZ,
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=y 단면',
+                line: { color: 'green', width: 2 }
+            };
+            
+            const diagLayout = {
+                title: 'Diagonal View (단일 렌즈, x=y)',
+                xaxis: { title: 'X=Y (μm)' },
+                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            Plotly.newPlot('topView', [topTrace], topLayout);
+            Plotly.newPlot('sideViewXZ', [xzTrace], xzLayout);
+            Plotly.newPlot('sideViewYZ', [yzTrace], yzLayout);
+            Plotly.newPlot('diagonalView', [diagTrace], diagLayout);
+        }
+        
+        // 2D 광선 추적 플롯 (X축 뷰와 Y축 뷰)
+        function plotRay2D(data, colormap) {
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+            
+            const config = document.getElementById('arrayConfig').value;
+            const [rows, cols] = config.split('x').map(Number);
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const numRays = parseInt(document.getElementById('numRays').value);
+            const refractiveIndex = parseFloat(document.getElementById('refractiveIndex').value);
+            const propagationDistance = parseFloat(document.getElementById('propagationDistance').value);
+            const raySpacing = parseFloat(document.getElementById('raySpacing').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            
+            // X축 뷰 (Y=0 단면)
+            const tracesX = [];
+            const endPointsX = [];
+            
+            // 렌즈 프로파일 그리기 (X축 뷰)
+            for (let lensCol = 0; lensCol < cols; lensCol++) {
+                const lensCenterX = (lensCol - (cols - 1) / 2) * spacingX;
+                const lensX = [];
+                const lensZ = [];
+                
+                for (let x = lensCenterX - Rx * 1.2; x <= lensCenterX + Rx * 1.2; x += 0.05) {
+                    const localX = x - lensCenterX;
+                    const r = Math.abs(localX / Rx);
+                    if (r <= 1) {
+                        const z = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                        lensX.push(x);
+                        lensZ.push(z);
+                    }
+                }
+                
+                tracesX.push({
+                    x: lensX,
+                    y: lensZ,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `렌즈 ${lensCol+1} 프로파일`,
+                    line: { color: 'black', width: 3 },
+                    showlegend: false
+                });
+            }
+            
+            // X축 광선 추적 - 전체 배열 영역에 광선 분포
+            const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray'];
+            let rayIndex = 0;
+            
+            const totalWidth = cols * spacingX;
+            const rayStep = totalWidth * raySpacing / numRays;
+            
+            for (let i = 0; i < numRays; i++) {
+                const startX = (i - (numRays-1)/2) * rayStep;
+                const rayResult = traceRayThroughLensArray(startX, 0, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
+                
+                const rayX = rayResult.path.map(p => p.x);
+                const rayZ = rayResult.path.map(p => p.z);
+                
+                tracesX.push({
+                    x: rayX,
+                    y: rayZ,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: `광선 ${rayIndex+1}`,
+                    line: { color: colors[rayIndex % colors.length], width: 2 },
+                    marker: { size: 3 },
+                    showlegend: false
+                });
+                
+                if (rayResult.focused) {
+                    endPointsX.push(rayResult);
+                }
+                rayIndex++;
+            }
+            
+            // Y축 뷰 (X=0 단면)
+            const tracesY = [];
+            const endPointsY = [];
+            rayIndex = 0;
+            
+            // 렌즈 프로파일 그리기 (Y축 뷰)
+            for (let lensRow = 0; lensRow < rows; lensRow++) {
+                const lensCenterY = (lensRow - (rows - 1) / 2) * spacingY;
+                const lensY = [];
+                const lensZ = [];
+                
+                for (let y = lensCenterY - Ry * 1.2; y <= lensCenterY + Ry * 1.2; y += 0.05) {
+                    const localY = y - lensCenterY;
+                    const r = Math.abs(localY / Ry);
+                    if (r <= 1) {
+                        const z = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                        lensY.push(y);
+                        lensZ.push(z);
+                    }
+                }
+                
+                tracesY.push({
+                    x: lensY,
+                    y: lensZ,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `렌즈 ${lensRow+1} 프로파일`,
+                    line: { color: 'black', width: 3 },
+                    showlegend: false
+                });
+            }
+            
+            // Y축 광선 추적 - 전체 배열 영역에 광선 분포
+            const totalHeight = rows * spacingY;
+            const rayStepY = totalHeight * raySpacing / numRays;
+            
+            for (let i = 0; i < numRays; i++) {
+                const startY = (i - (numRays-1)/2) * rayStepY;
+                const rayResult = traceRayThroughLensArray(0, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
+                
+                const rayY = rayResult.path.map(p => p.y);
+                const rayZ = rayResult.path.map(p => p.z);
+                
+                tracesY.push({
+                    x: rayY,
+                    y: rayZ,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: `광선 ${rayIndex+1}`,
+                    line: { color: colors[rayIndex % colors.length], width: 2 },
+                    marker: { size: 3 },
+                    showlegend: false
+                });
+                
+                if (rayResult.focused) {
+                    endPointsY.push(rayResult);
+                }
+                rayIndex++;
+            }
+            
+            // 집속점 계산
+            const focalPointX = calculateFocalPoint(endPointsX);
+            const focalPointY = calculateFocalPoint(endPointsY);
+            
+            let focalInfoX = "집속점 없음";
+            let focalInfoY = "집속점 없음";
+            
+            if (focalPointX) {
+                focalInfoX = `X: ${focalPointX.x.toFixed(3)}μm, Z: ${focalPointX.z.toFixed(3)}μm (${focalPointX.count}개 광선)`;
+            }
+            
+            if (focalPointY) {
+                focalInfoY = `Y: ${focalPointY.y.toFixed(3)}μm, Z: ${focalPointY.z.toFixed(3)}μm (${focalPointY.count}개 광선)`;
+            }
+            
+            const layoutX = {
+                title: `X축 뷰 (Y=0 단면) - ${config} 배열<br><span style="font-size:12px">집속점: ${focalInfoX}</span>`,
+                xaxis: { title: 'X 좌표 (μm)' },
+                yaxis: { title: 'Z 좌표 (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 80, b: 50 }
+            };
+            
+            const layoutY = {
+                title: `Y축 뷰 (X=0 단면) - ${config} 배열<br><span style="font-size:12px">집속점: ${focalInfoY}</span>`,
+                xaxis: { title: 'Y 좌표 (μm)' },
+                yaxis: { title: 'Z 좌표 (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 80, b: 50 }
+            };
+            
+            Plotly.newPlot('topView', tracesX, layoutX);
+            Plotly.newPlot('sideViewXZ', tracesY, layoutY);
+            
+            // 나머지 뷰는 빈 플롯으로 설정
+            Plotly.newPlot('sideViewYZ', [], { title: '추가 정보' });
+            Plotly.newPlot('diagonalView', [], { title: '광선 통계' });
+        }
+        
+        // 3D 광선 추적 플롯 (배열 기반 수정된 버전)
+        function plotRay3D(data, colormap) {
+            document.getElementById('multiViewContainer').style.display = 'none';
+            document.getElementById('plot').parentElement.style.display = 'block';
+            
+            const config = document.getElementById('arrayConfig').value;
+            const [rows, cols] = config.split('x').map(Number);
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const numRays = parseInt(document.getElementById('numRays').value);
+            const refractiveIndex = parseFloat(document.getElementById('refractiveIndex').value);
+            const propagationDistance = parseFloat(document.getElementById('propagationDistance').value);
+            const raySpacing = parseFloat(document.getElementById('raySpacing').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            
+            const traces = [];
+            const allEndPoints = [];
+            
+            // 렌즈 표면 그리기 (선택된 배열 구성에 맞게)
+            traces.push({
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'surface',
+                colorscale: 'Greys',
+                opacity: 0.7,
+                showscale: false,
+                name: '렌즈 표면'
+            });
+            
+            // 전체 배열 영역에 균등하게 광선 분포
+            const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'yellow', 'cyan', 'magenta'];
+            let rayIndex = 0;
+            
+            const totalWidth = cols * spacingX;
+            const totalHeight = rows * spacingY;
+            const raysPerSide = Math.ceil(Math.sqrt(numRays));
+            
+            const rayStepX = totalWidth * raySpacing / (raysPerSide - 1);
+            const rayStepY = totalHeight * raySpacing / (raysPerSide - 1);
+            
+            for (let i = 0; i < raysPerSide; i++) {
+                for (let j = 0; j < raysPerSide; j++) {
+                    const startX = (i - (raysPerSide-1)/2) * rayStepX;
+                    const startY = (j - (raysPerSide-1)/2) * rayStepY;
+                    
+                    const rayResult = traceRayThroughLensArray(
+                        startX, startY, config, spacingX, spacingY, 
+                        Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance
+                    );
+                    
+                    const rayX = rayResult.path.map(p => p.x);
+                    const rayY = rayResult.path.map(p => p.y);
+                    const rayZ = rayResult.path.map(p => p.z);
+                    
+                    traces.push({
+                        x: rayX,
+                        y: rayY,
+                        z: rayZ,
+                        type: 'scatter3d',
+                        mode: 'lines+markers',
+                        name: `광선 ${rayIndex+1}`,
+                        line: { color: colors[rayIndex % colors.length], width: 4 },
+                        marker: { size: 2 },
+                        showlegend: false
+                    });
+                    
+                    if (rayResult.focused) {
+                        allEndPoints.push(rayResult);
+                    }
+                    
+                    rayIndex++;
+                    if (rayIndex >= 50) break; // 성능을 위한 제한
+                }
+                if (rayIndex >= 50) break;
+            }
+            
+            // 전체 집속점 계산
+            const globalFocalPoint = calculateFocalPoint(allEndPoints);
+            let focalInfo = "집속점 정보 없음";
+            
+            if (globalFocalPoint) {
+                focalInfo = `집속점: (${globalFocalPoint.x.toFixed(3)}, ${globalFocalPoint.y.toFixed(3)}, ${globalFocalPoint.z.toFixed(3)}) μm | ${globalFocalPoint.count}개 광선 집속`;
+                
+                // 집속점을 큰 마커로 표시
+                traces.push({
+                    x: [globalFocalPoint.x],
+                    y: [globalFocalPoint.y],
+                    z: [globalFocalPoint.z],
+                    type: 'scatter3d',
+                    mode: 'markers',
+                    name: '집속점',
+                    marker: { 
+                        size: 15, 
+                        color: 'red',
+                        symbol: 'diamond'
+                    },
+                    showlegend: true
+                });
+            }
+            
+            const layout = {
+                title: `3D 광선 추적 - ${config} 마이크로 렌즈 어레이<br><span style="font-size:12px">${focalInfo}</span>`,
+                scene: {
+                    xaxis: { title: 'X (μm)' },
+                    yaxis: { title: 'Y (μm)' },
+                    zaxis: { title: 'Z (μm)' },
+                    aspectmode: 'cube'
+                },
+                showlegend: true
+            };
+            
+            Plotly.newPlot('plot', traces, layout);
+        }
+        
+        // 설정 내보내기
+        function exportConfiguration() {
+            const config = {
+                arrayConfig: document.getElementById('arrayConfig').value,
+                spacingX: parseFloat(document.getElementById('spacingX').value),
+                spacingY: parseFloat(document.getElementById('spacingY').value),
+                Rx: parseFloat(document.getElementById('Rx').value),
+                Ry: parseFloat(document.getElementById('Ry').value),
+                h: parseFloat(document.getElementById('h').value),
+                n: parseFloat(document.getElementById('n').value),
+                alpha: parseFloat(document.getElementById('alpha').value),
+                resolution: parseInt(document.getElementById('resolution').value),
+                colormap: document.getElementById('colormap').value,
+                numRays: parseInt(document.getElementById('numRays').value),
+                refractiveIndex: parseFloat(document.getElementById('refractiveIndex').value),
+                propagationDistance: parseFloat(document.getElementById('propagationDistance').value),
+                raySpacing: parseFloat(document.getElementById('raySpacing').value),
+                exportDate: new Date().toISOString(),
+                version: '2.0'
+            };
+            
+            const dataStr = JSON.stringify(config, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `MLA_config_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        
+        // 설정 가져오기
+        function importConfiguration(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    // 설정 값 적용
+                    if (config.arrayConfig) document.getElementById('arrayConfig').value = config.arrayConfig;
+                    if (config.spacingX !== undefined) {
+                        document.getElementById('spacingX').value = config.spacingX;
+                        updateValueDisplay('spacingX', config.spacingX);
+                    }
+                    if (config.spacingY !== undefined) {
+                        document.getElementById('spacingY').value = config.spacingY;
+                        updateValueDisplay('spacingY', config.spacingY);
+                    }
+                    if (config.Rx !== undefined) {
+                        document.getElementById('Rx').value = config.Rx;
+                        updateValueDisplay('Rx', config.Rx);
+                    }
+                    if (config.Ry !== undefined) {
+                        document.getElementById('Ry').value = config.Ry;
+                        updateValueDisplay('Ry', config.Ry);
+                    }
+                    if (config.h !== undefined) {
+                        document.getElementById('h').value = config.h;
+                        updateValueDisplay('h', config.h);
+                    }
+                    if (config.n !== undefined) {
+                        document.getElementById('n').value = config.n;
+                        updateValueDisplay('n', config.n);
+                    }
+                    if (config.alpha !== undefined) {
+                        document.getElementById('alpha').value = config.alpha;
+                        updateValueDisplay('alpha', config.alpha);
+                    }
+                    if (config.resolution !== undefined) {
+                        document.getElementById('resolution').value = config.resolution;
+                        updateValueDisplay('resolution', config.resolution);
+                    }
+                    if (config.colormap) document.getElementById('colormap').value = config.colormap;
+                    if (config.numRays !== undefined) {
+                        document.getElementById('numRays').value = config.numRays;
+                        updateValueDisplay('numRays', config.numRays);
+                    }
+                    if (config.refractiveIndex !== undefined) {
+                        document.getElementById('refractiveIndex').value = config.refractiveIndex;
+                        updateValueDisplay('refractiveIndex', config.refractiveIndex);
+                    }
+                    if (config.propagationDistance !== undefined) {
+                        document.getElementById('propagationDistance').value = config.propagationDistance;
+                        updateValueDisplay('propagationDistance', config.propagationDistance);
+                    }
+                    if (config.raySpacing !== undefined) {
+                        document.getElementById('raySpacing').value = config.raySpacing;
+                        updateValueDisplay('raySpacing', config.raySpacing);
+                    }
+                    
+                    // 플롯 업데이트
+                    updatePlot();
+                    
+                    alert('설정을 성공적으로 가져왔습니다!');
+                } catch (error) {
+                    alert('설정 파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // 기본값 복원
+        function resetToDefaults() {
+            document.getElementById('arrayConfig').value = '1x1';
+            document.getElementById('spacingX').value = 1.0;
+            document.getElementById('spacingY').value = 1.0;
+            document.getElementById('Rx').value = 1.3;
+            document.getElementById('Ry').value = 1.3;
+            document.getElementById('h').value = 0.5;
+            document.getElementById('n').value = 2.0;
+            document.getElementById('alpha').value = 1.0;
+            document.getElementById('resolution').value = 100;
+            document.getElementById('colormap').value = 'Viridis';
+            document.getElementById('numRays').value = 20;
+            document.getElementById('refractiveIndex').value = 1.5;
+            document.getElementById('propagationDistance').value = 10;
+            document.getElementById('raySpacing').value = 0.3;
+            
+            // 값 표시 업데이트
+            updateValueDisplay('spacingX', 1.0);
+            updateValueDisplay('spacingY', 1.0);
+            updateValueDisplay('Rx', 1.3);
+            updateValueDisplay('Ry', 1.3);
+            updateValueDisplay('h', 0.5);
+            updateValueDisplay('n', 2.0);
+            updateValueDisplay('alpha', 1.0);
+            updateValueDisplay('resolution', 100);
+            updateValueDisplay('numRays', 20);
+            updateValueDisplay('refractiveIndex', 1.5);
+            updateValueDisplay('propagationDistance', 10);
+            updateValueDisplay('raySpacing', 0.3);
+            
+            updatePlot();
+        }
+        
+        // 메인 업데이트 함수
+        function updatePlot() {
+            const config = document.getElementById('arrayConfig').value;
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            const colormap = document.getElementById('colormap').value;
+            
+            const data = generateLensArray(config, Rx, Ry, h, n, alpha, resolution, spacingX, spacingY);
+            
+            switch (currentView) {
+                case '2D':
+                    plot2D(data, colormap);
+                    break;
+                case '3D':
+                    plot3D(data, colormap);
+                    break;
+                case 'Contour':
+                    plotContour(data, colormap);
+                    break;
+                case 'Ray2D':
+                    plotRay2D(data, colormap);
+                    break;
+                case 'Ray3D':
+                    plotRay3D(data, colormap);
+                    break;
+            }
+        }
+        
+        // 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            // 슬라이더 이벤트
+            ['Rx', 'Ry', 'h', 'n', 'alpha', 'resolution', 'spacingX', 'spacingY', 'numRays', 'refractiveIndex', 'propagationDistance', 'raySpacing'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        updateValueDisplay(id, this.value);
+                        updatePlot();
+                    });
+                    updateValueDisplay(id, element.value);
+                }
+            });
+            
+            // 선택 박스 이벤트
+            ['arrayConfig', 'colormap'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updatePlot);
+            });
+            
+            // 뷰 버튼 이벤트
+            document.getElementById('viewContour').addEventListener('click', function() {
+                currentView = 'Contour';
+                updateViewButtons();
+                updatePlot();
+            });
+            
+            document.getElementById('view2D').addEventListener('click', function() {
+                currentView = '2D';
+                updateViewButtons();
+                updatePlot();
+            });
+            
+            document.getElementById('view3D').addEventListener('click', function() {
+                currentView = '3D';
+                updateViewButtons();
+                updatePlot();
+            });
+            
+            document.getElementById('viewRay2D').addEventListener('click', function() {
+                currentView = 'Ray2D';
+                updateViewButtons();
+                updatePlot();
+            });
+            
+            document.getElementById('viewRay3D').addEventListener('click', function() {
+                currentView = 'Ray3D';
+                updateViewButtons();
+                updatePlot();
+            });
+            
+            // 초기 플롯 생성
+            updatePlot();
+        });
+        
+        function updateViewButtons() {
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (currentView === '2D') {
+                document.getElementById('view2D').classList.add('active');
+            } else if (currentView === '3D') {
+                document.getElementById('view3D').classList.add('active');
+            } else if (currentView === 'Contour') {
+                document.getElementById('viewContour').classList.add('active');
+            } else if (currentView === 'Ray2D') {
+                document.getElementById('viewRay2D').classList.add('active');
+            } else if (currentView === 'Ray3D') {
+                document.getElementById('viewRay3D').classList.add('active');
+            }
+        }
+    </script>
+</body>

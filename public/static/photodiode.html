@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포토다이오드 시뮬레이터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .simulator-area {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .canvas-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .wavelength-spectrum {
+            height: 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            background: linear-gradient(to right, 
+                #8B00FF 0%,     /* 400nm - 보라 */
+                #4B0082 12.5%,  /* 425nm - 남보라 */
+                #0000FF 25%,    /* 450nm - 파랑 */
+                #00FFFF 37.5%,  /* 475nm - 청록 */
+                #00FF00 50%,    /* 500nm - 녹색 */
+                #FFFF00 62.5%,  /* 525nm - 노랑 */
+                #FFA500 75%,    /* 575nm - 주황 */
+                #FF0000 87.5%,  /* 625nm - 빨강 */
+                #8B0000 100%    /* 700nm - 적갈색 */
+            );
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .stats {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .value {
+            font-weight: 700;
+            color: #64ffda;
+        }
+
+        .info-panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            grid-column: 1 / -1;
+        }
+
+        .info-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .info-section h3 {
+            color: #64ffda;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-section p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .simulator-area {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 포토다이오드 시뮬레이터</h1>
+        
+        <div class="simulator-area">
+            <div class="canvas-container">
+                <canvas id="simulatorCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="intensity">광자 강도</label>
+                    <input type="range" id="intensity" min="0" max="100" value="50">
+                </div>
+                
+                <div class="control-group">
+                    <label for="wavelength">파장: <span id="wavelengthValue">550nm</span></label>
+                    <input type="range" id="wavelength" min="400" max="700" value="550" step="10">
+                    <div class="wavelength-spectrum"></div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <span>양자효율:</span>
+                        <span class="value" id="quantumEfficiency">85%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>생성 전하:</span>
+                        <span class="value" id="generatedCharge">4250 e⁻</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>입사 광자:</span>
+                        <span class="value" id="incidentPhotons">5000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>흡수 광자:</span>
+                        <span class="value" id="absorbedPhotons">4250</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-content">
+                <div class="info-section">
+                    <h3>포토다이오드 동작 원리</h3>
+                    <p>포토다이오드는 빛을 전기 신호로 변환하는 반도체 소자입니다. 광자가 실리콘 결정에 충돌하면 전자-정공 쌍이 생성되어 전류가 흐르게 됩니다.</p>
+                    <p>각 광자는 실리콘의 밴드갭(~1.1eV)보다 높은 에너지를 가져야 전자-정공 쌍을 생성할 수 있습니다.</p>
+                </div>
+                
+                <div class="info-section">
+                    <h3>양자효율과 파장</h3>
+                    <p>양자효율은 입사된 광자 중 실제로 전자-정공 쌍을 생성하는 광자의 비율입니다.</p>
+                    <p>실리콘 센서는 녹색-적색 영역(500-700nm)에서 최고 효율을 보이며, UV나 적외선에서는 효율이 감소합니다.</p>
+                </div>
+                
+                <div class="info-section">
+                    <h3>연속 파장 조절</h3>
+                    <p>파장 슬라이더로 400nm(보라)부터 700nm(적색)까지 연속적으로 조절할 수 있습니다.</p>
+                    <p>슬라이더 아래의 스펙트럼 바는 실제 가시광선의 색상을 나타내며, 현재 선택된 파장에 따라 광자의 색상과 물리적 특성이 실시간으로 변합니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PhotodiodeSimulator {
+            constructor() {
+                this.canvas = document.getElementById('simulatorCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.setupCanvas();
+                
+                this.photons = [];
+                this.electrons = [];
+                this.currentWavelength = 550;
+                this.intensity = 50;
+                
+                this.quantumEfficiencies = this.createQuantumEfficiencyFunction();
+                
+                this.setupEventListeners();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                this.canvas.width = 800;
+                this.canvas.height = 500;
+            }
+            
+            setupEventListeners() {
+                const intensitySlider = document.getElementById('intensity');
+                const wavelengthSlider = document.getElementById('wavelength');
+                const wavelengthValue = document.getElementById('wavelengthValue');
+                
+                intensitySlider.addEventListener('input', (e) => {
+                    this.intensity = parseInt(e.target.value);
+                    this.updateStats();
+                });
+                
+                wavelengthSlider.addEventListener('input', (e) => {
+                    this.currentWavelength = parseInt(e.target.value);
+                    wavelengthValue.textContent = `${this.currentWavelength}nm`;
+                    this.updateStats();
+                });
+                
+                this.updateStats();
+            }
+            
+            generatePhoton() {
+                return {
+                    x: Math.random() * this.canvas.width,
+                    y: 0,
+                    speed: 2 + Math.random() * 3,
+                    wavelength: this.currentWavelength,
+                    size: 3 + Math.random() * 2,
+                    alpha: 0.8 + Math.random() * 0.2,
+                    absorbed: false,
+                    absorptionDepth: this.getAbsorptionDepth(this.currentWavelength)
+                };
+            }
+            
+            createQuantumEfficiencyFunction() {
+                // 실리콘의 실제 양자효율 곡선을 근사한 함수
+                return (wavelength) => {
+                    if (wavelength < 400) return 0.15;
+                    if (wavelength > 700) return 0.30;
+                    
+                    // 실리콘의 양자효율 곡선 (대략적)
+                    if (wavelength <= 450) {
+                        // 400-450nm: 급격한 상승
+                        return 0.15 + (wavelength - 400) / 50 * 0.6;
+                    } else if (wavelength <= 550) {
+                        // 450-550nm: 완만한 상승, 최대치 도달
+                        return 0.75 + (wavelength - 450) / 100 * 0.1;
+                    } else if (wavelength <= 650) {
+                        // 550-650nm: 최대 효율 유지
+                        return 0.85;
+                    } else {
+                        // 650-700nm: 완만한 감소
+                        return 0.85 - (wavelength - 650) / 50 * 0.4;
+                    }
+                };
+            }
+            
+            getAbsorptionDepth(wavelength) {
+                // 파장에 따른 흡수 깊이 (연속 함수)
+                // 짧은 파장일수록 표면 근처에서 흡수
+                if (wavelength <= 400) return 20;
+                if (wavelength >= 700) return 250;
+                
+                // 지수적 증가 함수로 흡수 깊이 계산
+                const normalized = (wavelength - 400) / 300; // 0-1 사이로 정규화
+                return 20 + Math.pow(normalized, 1.5) * 230;
+            }
+            
+            generateElectron(x, y) {
+                return {
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y + (Math.random() - 0.5) * 20,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    life: 60 + Math.random() * 40,
+                    maxLife: 100,
+                    size: 2 + Math.random() * 2
+                };
+            }
+            
+            getPhotonColor(wavelength) {
+                // 가시광선 스펙트럼을 연속적으로 표현
+                if (wavelength >= 700) return '#8B0000';      // 적갈색 (적외선 근처)
+                if (wavelength >= 650) return '#FF0000';      // 빨강
+                if (wavelength >= 590) return '#FFA500';      // 주황
+                if (wavelength >= 570) return '#FFFF00';      // 노랑
+                if (wavelength >= 520) return '#00FF00';      // 녹색
+                if (wavelength >= 490) return '#00FFFF';      // 청록
+                if (wavelength >= 450) return '#0000FF';      // 파랑
+                if (wavelength >= 425) return '#4B0082';      // 남보라
+                return '#8B00FF';                              // 보라
+            }
+            
+            updateStats() {
+                const qe = this.quantumEfficiencies(this.currentWavelength);
+                const incidentPhotons = Math.floor(this.intensity * 100);
+                const absorbedPhotons = Math.floor(incidentPhotons * qe);
+                
+                document.getElementById('quantumEfficiency').textContent = `${Math.round(qe * 100)}%`;
+                document.getElementById('incidentPhotons').textContent = incidentPhotons.toLocaleString();
+                document.getElementById('absorbedPhotons').textContent = absorbedPhotons.toLocaleString();
+                document.getElementById('generatedCharge').textContent = `${absorbedPhotons.toLocaleString()} e⁻`;
+            }
+            
+            update() {
+                // 새로운 광자 생성
+                if (Math.random() < this.intensity / 100) {
+                    this.photons.push(this.generatePhoton());
+                }
+                
+                // 광자 업데이트
+                this.photons = this.photons.filter(photon => {
+                    if (!photon.absorbed) {
+                        photon.y += photon.speed;
+                        
+                        // 실리콘 표면에 도달했을 때부터 흡수 시작
+                        if (photon.y > 100) {
+                            const depthInSilicon = photon.y - 100;
+                            const maxDepth = photon.absorptionDepth;
+                            
+                            // 깊이에 따른 흡수 확률 (Beer-Lambert 법칙)
+                            const absorptionProbability = 1 - Math.exp(-depthInSilicon / (maxDepth * 0.3));
+                            const qe = this.quantumEfficiencies(this.currentWavelength);
+                            
+                            if (Math.random() < absorptionProbability * qe * 0.1) {
+                                // 전자-정공 쌍 생성
+                                this.electrons.push(this.generateElectron(photon.x, photon.y));
+                                photon.absorbed = true;
+                                return false; // 흡수된 광자는 제거
+                            }
+                            
+                            // 최대 침투 깊이에 도달하면 흡수되지 않더라도 제거
+                            if (depthInSilicon > maxDepth) {
+                                return false;
+                            }
+                        }
+                    }
+                    
+                    return photon.y < this.canvas.height + 50 && !photon.absorbed;
+                });
+                
+                // 전자 업데이트
+                this.electrons = this.electrons.filter(electron => {
+                    electron.x += electron.vx;
+                    electron.y += electron.vy;
+                    electron.life--;
+                    
+                    // 경계 반사
+                    if (electron.x < 0 || electron.x > this.canvas.width) electron.vx *= -0.8;
+                    if (electron.y < 100 || electron.y > this.canvas.height) electron.vy *= -0.8;
+                    
+                    return electron.life > 0;
+                });
+            }
+            
+            draw() {
+                // 배경 그라디언트
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#0f0f0f');
+                gradient.addColorStop(0.2, '#1a1a2e');
+                gradient.addColorStop(1, '#16213e');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 실리콘 기판 표시
+                const siliconGradient = this.ctx.createLinearGradient(0, 100, 0, this.canvas.height);
+                siliconGradient.addColorStop(0, 'rgba(100, 100, 100, 0.3)');
+                siliconGradient.addColorStop(1, 'rgba(150, 150, 150, 0.1)');
+                
+                this.ctx.fillStyle = siliconGradient;
+                this.ctx.fillRect(0, 100, this.canvas.width, this.canvas.height - 100);
+                
+                // 실리콘 경계선
+                this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 100);
+                this.ctx.lineTo(this.canvas.width, 100);
+                this.ctx.stroke();
+                
+                // 파장별 흡수 깊이 시각화
+                const currentDepth = this.getAbsorptionDepth(this.currentWavelength);
+                this.ctx.strokeStyle = 'rgba(255, 255, 0, 0.3)';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, 100 + currentDepth);
+                this.ctx.lineTo(this.canvas.width, 100 + currentDepth);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // 흡수 깊이 라벨
+                this.ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+                this.ctx.font = '12px Arial';
+                this.ctx.fillText(`흡수 깊이: ${Math.round(currentDepth/10)}μm`, 20, 100 + currentDepth - 10);
+                
+                // 라벨
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.font = '16px Arial';
+                this.ctx.fillText('공기 (광자 입사)', 20, 30);
+                this.ctx.fillText('실리콘 기판 (전자-정공 쌍 생성)', 20, 130);
+                
+                // 광자 그리기
+                this.photons.forEach(photon => {
+                    const color = this.getPhotonColor(photon.wavelength);
+                    
+                    this.ctx.save();
+                    this.ctx.globalAlpha = photon.alpha * (photon.absorbed ? 0.3 : 1);
+                    
+                    // 광자 글로우 효과
+                    this.ctx.shadowColor = color;
+                    this.ctx.shadowBlur = 10;
+                    
+                    this.ctx.fillStyle = color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(photon.x, photon.y, photon.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                });
+                
+                // 전자 그리기
+                this.electrons.forEach(electron => {
+                    const alpha = electron.life / electron.maxLife;
+                    
+                    this.ctx.save();
+                    this.ctx.globalAlpha = alpha;
+                    
+                    // 전자 글로우 효과
+                    this.ctx.shadowColor = '#ffeb3b';
+                    this.ctx.shadowBlur = 8;
+                    
+                    this.ctx.fillStyle = '#ffeb3b';
+                    this.ctx.beginPath();
+                    this.ctx.arc(electron.x, electron.y, electron.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                });
+                
+                // 범례
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(this.canvas.width - 200, 20, 180, 80);
+                
+                this.ctx.fillStyle = this.getPhotonColor(this.currentWavelength);
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width - 180, 40, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = '#ffeb3b';
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width - 180, 70, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = '14px Arial';
+                this.ctx.fillText('광자', this.canvas.width - 160, 45);
+                this.ctx.fillText('전자', this.canvas.width - 160, 75);
+            }
+            
+            animate() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // 시뮬레이터 시작
+        window.addEventListener('load', () => {
+            new PhotodiodeSimulator();
+        });
+    </script>
+</body>
+</html>

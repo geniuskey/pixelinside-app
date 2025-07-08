@@ -1,4 +1,4 @@
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -226,14 +226,41 @@
                 </div>
                 <div class="control-content collapsed" id="config-content">
                     <div class="control-item">
-                        <button onclick="exportConfiguration()">📤 설정 내보내기</button>
-                    </div>
-                    <div class="control-item">
-                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importConfiguration(event)">
-                        <button onclick="document.getElementById('importFile').click()">📥 설정 가져오기</button>
-                    </div>
-                    <div class="control-item">
                         <button onclick="resetToDefaults()">🔄 기본값 복원</button>
+                        <button onclick="copyConfigurationToClipboard()">📋 설정 복사 (Copy)</button>
+                    </div>
+                    <div class="control-item">
+                        <label for="configTextarea">설정 붙여넣기:</label>
+                        <textarea id="configTextarea" rows="15" style="width: 100%; font-family: monospace; font-size: 12px; border: 2px solid #bdc3c7; border-radius: 5px; padding: 8px;" placeholder="여기에 설정 JSON을 붙여넣으세요..."></textarea>
+                        <button onclick="applyConfiguration()">✅ 설정 적용</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="control-header" onclick="toggleSection('visual')">
+                    <span>🎨 시각화 설정</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="control-content collapsed" id="visual-content">
+                    <div class="control-item">
+                        <label for="resolution">해상도:</label>
+                        <input type="range" id="resolution" min="10" max="200" step="10" value="50">
+                        <div class="value-display" id="resolutionValue">30</div>
+                    </div>
+                    
+                    <div class="control-item">
+                        <label for="colormap">색상 맵:</label>
+                        <select id="colormap">
+                            <option value="Viridis">Viridis</option>
+                            <option value="Plasma">Plasma</option>
+                            <option value="Inferno">Inferno</option>
+                            <option value="Magma">Magma</option>
+                            <option value="Jet">Jet</option>
+                            <option value="Hot">Hot</option>
+                            <option value="Cool">Cool</option>
+                            <option value="Rainbow">Rainbow</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -278,14 +305,14 @@
                 <div class="control-content" id="lens-content">
                     <div class="control-item">
                         <label for="Rx">반지름 X (Rx, μm):</label>
-                        <input type="range" id="Rx" min="0.1" max="3.0" step="0.01" value="1.3">
-                        <div class="value-display" id="RxValue">1.3 μm</div>
+                        <input type="range" id="Rx" min="0.1" max="3.0" step="0.01" value="0.6">
+                        <div class="value-display" id="RxValue">0.6 μm</div>
                     </div>
                     
                     <div class="control-item">
                         <label for="Ry">반지름 Y (Ry, μm):</label>
-                        <input type="range" id="Ry" min="0.1" max="3.0" step="0.01" value="1.3">
-                        <div class="value-display" id="RyValue">1.3 μm</div>
+                        <input type="range" id="Ry" min="0.1" max="3.0" step="0.01" value="0.6">
+                        <div class="value-display" id="RyValue">0.6 μm</div>
                     </div>
                     
                     <div class="control-item">
@@ -309,34 +336,6 @@
             </div>
             
             <div class="control-section">
-                <div class="control-header" onclick="toggleSection('visual')">
-                    <span>🎨 시각화 설정</span>
-                    <span class="arrow">▼</span>
-                </div>
-                <div class="control-content collapsed" id="visual-content">
-                    <div class="control-item">
-                        <label for="resolution">해상도:</label>
-                        <input type="range" id="resolution" min="50" max="200" step="10" value="100">
-                        <div class="value-display" id="resolutionValue">100</div>
-                    </div>
-                    
-                    <div class="control-item">
-                        <label for="colormap">색상 맵:</label>
-                        <select id="colormap">
-                            <option value="Viridis">Viridis</option>
-                            <option value="Plasma">Plasma</option>
-                            <option value="Inferno">Inferno</option>
-                            <option value="Magma">Magma</option>
-                            <option value="Jet">Jet</option>
-                            <option value="Hot">Hot</option>
-                            <option value="Cool">Cool</option>
-                            <option value="Rainbow">Rainbow</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="control-section">
                 <div class="control-header" onclick="toggleSection('ray')">
                     <span>🌈 광선 추적 설정</span>
                     <span class="arrow">▼</span>
@@ -344,34 +343,34 @@
                 <div class="control-content collapsed" id="ray-content">
                     <div class="control-item">
                         <label for="numRays">광선 수 (per 렌즈):</label>
-                        <input type="range" id="numRays" min="5" max="50" step="5" value="20">
+                        <input type="range" id="numRays" min="3" max="50" step="5" value="20">
                         <div class="value-display" id="numRaysValue">20</div>
                     </div>
                     
                     <div class="control-item">
                         <label for="refractiveIndex">굴절률 (n):</label>
-                        <input type="range" id="refractiveIndex" min="1.2" max="3.0" step="0.1" value="1.5">
+                        <input type="range" id="refractiveIndex" min="1.3" max="1.6" step="0.01" value="1.5">
                         <div class="value-display" id="refractiveIndexValue">1.5</div>
                     </div>
                     
                     <div class="control-item">
                         <label for="propagationDistance">전파 거리 (μm):</label>
-                        <input type="range" id="propagationDistance" min="1" max="20" step="1" value="10">
-                        <div class="value-display" id="propagationDistanceValue">10 μm</div>
+                        <input type="range" id="propagationDistance" min="1" max="80" step="1" value="2">
+                        <div class="value-display" id="propagationDistanceValue">2 μm</div>
                     </div>
                     
                     <div class="control-item">
                         <label for="raySpacing">광선 간격:</label>
-                        <input type="range" id="raySpacing" min="0.1" max="1.0" step="0.1" value="0.3">
-                        <div class="value-display" id="raySpacingValue">0.3</div>
+                        <input type="range" id="raySpacing" min="0.1" max="1.0" step="0.01" value="0.9">
+                        <div class="value-display" id="raySpacingValue">0.9</div>
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="view-controls">
-            <button class="view-btn" id="viewContour">컨투어 뷰</button>
-            <button class="view-btn active" id="view2D">2D 등고선 뷰</button>
+            <button class="view-btn active" id="viewContour">컨투어 뷰</button>
+            <button class="view-btn" id="view2D">2D 등고선 뷰</button>
             <button class="view-btn" id="view3D">3D 서피스 뷰</button>
             <button class="view-btn" id="viewRay2D">2D 광선 추적</button>
             <button class="view-btn" id="viewRay3D">3D 광선 추적</button>
@@ -384,9 +383,9 @@
         <div class="plot-container" id="multiViewContainer" style="display: none;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 800px;">
                 <div id="topView" style="height: 380px;"></div>
+                <div id="diagonalView" style="height: 380px;"></div>
                 <div id="sideViewXZ" style="height: 380px;"></div>
                 <div id="sideViewYZ" style="height: 380px;"></div>
-                <div id="diagonalView" style="height: 380px;"></div>
             </div>
         </div>
         
@@ -403,7 +402,7 @@
     </div>
 
     <script>
-        let currentView = '2D';
+        let currentView = 'Contour';
         
         // 섹션 토글 함수
         function toggleSection(sectionId) {
@@ -636,7 +635,7 @@
         
         // 배열을 고려한 광선 추적
         function traceRayThroughLensArray(startX, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance) {
-            const path = [{ x: startX, y: startY, z: h + 2 }]; // 시작점 (렌즈 위)
+            const path = [{ x: startX, y: startY, z: h + 0.5 }]; // 시작점 (렌즈 위)
             
             // 렌즈 배열과의 교점 찾기
             const intersection = findAllLensIntersections(startX, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha);
@@ -706,154 +705,6 @@
             };
         }
         
-        // 2D 등고선 플롯 (4개 뷰 포함)
-        function plot2D(data, colormap) {
-            // 메인 플롯 숨기고 멀티뷰 보여주기
-            document.getElementById('plot').parentElement.style.display = 'none';
-            document.getElementById('multiViewContainer').style.display = 'block';
-            
-            // 단일 렌즈 데이터 생성 (side view와 diagonal view용)
-            const Rx = parseFloat(document.getElementById('Rx').value);
-            const Ry = parseFloat(document.getElementById('Ry').value);
-            const h = parseFloat(document.getElementById('h').value);
-            const n = parseFloat(document.getElementById('n').value);
-            const alpha = parseFloat(document.getElementById('alpha').value);
-            const resolution = parseInt(document.getElementById('resolution').value);
-            const singleLensData = mla_surface(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5);
-            
-            // X 좌표의 최대값 계산하여 y축 범위 설정
-            const maxX = Math.max(...singleLensData.x.map(Math.abs));
-            const yAxisMax = maxX * 2;
-            
-            // Top View (등고선)
-            const topTrace = {
-                x: data.x,
-                y: data.y[0],
-                z: data.z,
-                type: 'contour',
-                colorscale: colormap,
-                showscale: true,
-                contours: {
-                    showlines: true,
-                    coloring: 'fill'
-                }
-            };
-            
-            const topLayout = {
-                title: 'Top View (Z축 등고선)',
-                xaxis: { title: 'X (μm)' },
-                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-            };
-            
-            // Side View XZ (y=0 단면) - 단일 렌즈만
-            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
-            const xzTrace = {
-                x: singleLensData.x,
-                y: singleLensData.z.map(row => row[centerYIndex]),
-                type: 'scatter',
-                mode: 'lines',
-                name: '단일 렌즈 y=0 단면',
-                line: { color: 'blue', width: 2 }
-            };
-            
-            const xzLayout = {
-                title: 'Side View XZ (단일 렌즈, y=0)',
-                xaxis: { title: 'X (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-            };
-            
-            // Side View YZ (x=0 단면) - 단일 렌즈만
-            const centerXIndex = Math.floor(singleLensData.x.length / 2);
-            const yzTrace = {
-                x: singleLensData.y[0],
-                y: singleLensData.z[centerXIndex],
-                type: 'scatter',
-                mode: 'lines',
-                name: '단일 렌즈 x=0 단면',
-                line: { color: 'red', width: 2 }
-            };
-            
-            const yzLayout = {
-                title: 'Side View YZ (단일 렌즈, x=0)',
-                xaxis: { title: 'Y (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-            };
-            
-            // Diagonal View (x=y 단면) - 단일 렌즈만
-            const diagonalX = [];
-            const diagonalZ = [];
-            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
-            
-            for (let i = 0; i < minSize; i++) {
-                const xVal = singleLensData.x[i];
-                const zVal = singleLensData.z[i][i];
-                diagonalX.push(xVal);
-                diagonalZ.push(zVal);
-            }
-            
-            const diagTrace = {
-                x: diagonalX,
-                y: diagonalZ,
-                type: 'scatter',
-                mode: 'lines',
-                name: '단일 렌즈 x=y 단면',
-                line: { color: 'green', width: 2 }
-            };
-            
-            const diagLayout = {
-                title: 'Diagonal View (단일 렌즈, x=y)',
-                xaxis: { title: 'X=Y (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-            };
-            
-            Plotly.newPlot('topView', [topTrace], topLayout);
-            Plotly.newPlot('sideViewXZ', [xzTrace], xzLayout);
-            Plotly.newPlot('sideViewYZ', [yzTrace], yzLayout);
-            Plotly.newPlot('diagonalView', [diagTrace], diagLayout);
-        }
-        
-        // 3D 서피스 플롯
-        function plot3D(data, colormap) {
-            // 멀티뷰 숨기고 메인 플롯 보여주기
-            document.getElementById('multiViewContainer').style.display = 'none';
-            document.getElementById('plot').parentElement.style.display = 'block';
-            
-            // X 좌표의 최대값 계산
-            const maxX = Math.max(...data.x);
-            const zMax = maxX * 2;
-            
-            const trace = {
-                x: data.x,
-                y: data.y[0],
-                z: data.z,
-                type: 'surface',
-                colorscale: colormap,
-                showscale: true,
-                colorbar: {
-                    title: '높이 (μm)'
-                }
-            };
-            
-            const layout = {
-                title: '3D 서피스 뷰 - 마이크로 렌즈 어레이',
-                scene: {
-                    xaxis: { title: 'X 좌표 (μm)' },
-                    yaxis: { title: 'Y 좌표 (μm)' },
-                    zaxis: { 
-                        title: 'Z 좌표 (높이, μm)',
-                        range: [0, zMax]
-                    },
-                    aspectmode: 'cube'
-                }
-            };
-            
-            Plotly.newPlot('plot', [trace], layout);
-        }
-        
         // 컨투어 플롯 (4개 뷰 포함)
         function plotContour(data, colormap) {
             // 메인 플롯 숨기고 멀티뷰 보여주기
@@ -907,8 +758,8 @@
             
             const xzLayout = {
                 title: 'Side View XZ (단일 렌즈, y=0)',
-                xaxis: { title: 'X (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                xaxis: { title: 'X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
                 margin: { l: 50, r: 50, t: 50, b: 50 }
             };
             
@@ -925,8 +776,8 @@
             
             const yzLayout = {
                 title: 'Side View YZ (단일 렌즈, x=0)',
-                xaxis: { title: 'Y (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                xaxis: { title: 'Y (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
                 margin: { l: 50, r: 50, t: 50, b: 50 }
             };
             
@@ -936,7 +787,7 @@
             const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
             
             for (let i = 0; i < minSize; i++) {
-                const xVal = singleLensData.x[i];
+                const xVal = singleLensData.x[i]  * Math.sqrt(2);
                 const zVal = singleLensData.z[i][i];
                 diagonalX.push(xVal);
                 diagonalZ.push(zVal);
@@ -953,15 +804,160 @@
             
             const diagLayout = {
                 title: 'Diagonal View (단일 렌즈, x=y)',
-                xaxis: { title: 'X=Y (μm)' },
-                yaxis: { title: 'Z (μm)', scaleanchor: 'x', range: [0, yAxisMax] },
+                xaxis: { title: 'Y=X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
                 margin: { l: 50, r: 50, t: 50, b: 50 }
             };
             
             Plotly.newPlot('topView', [topTrace], topLayout);
+            Plotly.newPlot('diagonalView', [diagTrace], diagLayout);
             Plotly.newPlot('sideViewXZ', [xzTrace], xzLayout);
             Plotly.newPlot('sideViewYZ', [yzTrace], yzLayout);
+        }
+        
+        // 2D 등고선 플롯 (4개 뷰 포함)
+        function plot2D(data, colormap) {
+            // 메인 플롯 숨기고 멀티뷰 보여주기
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+            
+            // 단일 렌즈 데이터 생성 (side view와 diagonal view용)
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const singleLensData = mla_surface(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5);
+            
+            // X 좌표의 최대값 계산하여 y축 범위 설정
+            const maxX = Math.max(...singleLensData.x.map(Math.abs));
+            const yAxisMax = maxX * 2;
+            
+            // Top View (등고선)
+            const topTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'contour',
+                colorscale: colormap,
+                showscale: true,
+                contours: {
+                    showlines: true,
+                    coloring: 'fill'
+                }
+            };
+            
+            const topLayout = {
+                title: 'Top View (Z축 등고선)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View XZ (y=0 단면) - 단일 렌즈만
+            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
+            const xzTrace = {
+                x: singleLensData.x,
+                y: singleLensData.z.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 y=0 단면',
+                line: { color: 'blue', width: 2 }
+            };
+            
+            const xzLayout = {
+                title: 'Side View XZ (단일 렌즈, y=0)',
+                xaxis: { title: 'X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Side View YZ (x=0 단면) - 단일 렌즈만
+            const centerXIndex = Math.floor(singleLensData.x.length / 2);
+            const yzTrace = {
+                x: singleLensData.y[0],
+                y: singleLensData.z[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=0 단면',
+                line: { color: 'red', width: 2 }
+            };
+            
+            const yzLayout = {
+                title: 'Side View YZ (단일 렌즈, x=0)',
+                xaxis: { title: 'Y (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            // Diagonal View (x=y 단면) - 단일 렌즈만
+            const diagonalX = [];
+            const diagonalZ = [];
+            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
+            
+            for (let i = 0; i < minSize; i++) {
+                const xVal = singleLensData.x[i] * Math.sqrt(2);
+                const zVal = singleLensData.z[i][i];
+                diagonalX.push(xVal);
+                diagonalZ.push(zVal);
+            }
+            
+            const diagTrace = {
+                x: diagonalX,
+                y: diagonalZ,
+                type: 'scatter',
+                mode: 'lines',
+                name: '단일 렌즈 x=y 단면',
+                line: { color: 'green', width: 2 }
+            };
+            
+            const diagLayout = {
+                title: 'Diagonal View (단일 렌즈, x=y)',
+                xaxis: { title: 'Y=X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+            
+            Plotly.newPlot('topView', [topTrace], topLayout);
             Plotly.newPlot('diagonalView', [diagTrace], diagLayout);
+            Plotly.newPlot('sideViewXZ', [xzTrace], xzLayout);
+            Plotly.newPlot('sideViewYZ', [yzTrace], yzLayout);
+        }
+        
+        // 3D 서피스 플롯
+        function plot3D(data, colormap) {
+            // 멀티뷰 숨기고 메인 플롯 보여주기
+            document.getElementById('multiViewContainer').style.display = 'none';
+            document.getElementById('plot').parentElement.style.display = 'block';
+            
+            // X 좌표의 최대값 계산
+            const maxX = Math.max(...data.x);
+            const zMax = maxX * 2;
+            
+            const trace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.z,
+                type: 'surface',
+                colorscale: colormap,
+                showscale: true,
+                colorbar: {
+                    title: '높이 (μm)'
+                }
+            };
+            
+            const layout = {
+                title: '3D 서피스 뷰 - 마이크로 렌즈 어레이',
+                scene: {
+                    xaxis: { title: 'X 좌표 (μm)' },
+                    yaxis: { title: 'Y 좌표 (μm)' },
+                    zaxis: { title: 'Z 좌표 (높이, μm)' },
+                    aspectmode: 'data'
+                }
+            };
+            
+            Plotly.newPlot('plot', [trace], layout);
         }
         
         // 2D 광선 추적 플롯 (X축 뷰와 Y축 뷰)
@@ -1023,7 +1019,7 @@
             
             for (let i = 0; i < numRays; i++) {
                 const startX = (i - (numRays-1)/2) * rayStep;
-                const rayResult = traceRayThroughLensArray(startX, 0, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
+                const rayResult = traceRayThroughLensArray(startX, 0, config, spacingX, 0, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
                 
                 const rayX = rayResult.path.map(p => p.x);
                 const rayZ = rayResult.path.map(p => p.z);
@@ -1083,7 +1079,7 @@
             
             for (let i = 0; i < numRays; i++) {
                 const startY = (i - (numRays-1)/2) * rayStepY;
-                const rayResult = traceRayThroughLensArray(0, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
+                const rayResult = traceRayThroughLensArray(0, startY, config, 0, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance);
                 
                 const rayY = rayResult.path.map(p => p.y);
                 const rayZ = rayResult.path.map(p => p.z);
@@ -1135,11 +1131,11 @@
             };
             
             Plotly.newPlot('topView', tracesX, layoutX);
-            Plotly.newPlot('sideViewXZ', tracesY, layoutY);
-            
+            Plotly.newPlot('diagonalView', tracesY, layoutY);
+
             // 나머지 뷰는 빈 플롯으로 설정
-            Plotly.newPlot('sideViewYZ', [], { title: '추가 정보' });
-            Plotly.newPlot('diagonalView', [], { title: '광선 통계' });
+            Plotly.newPlot('sideViewXZ', [], { title: '' });            
+            Plotly.newPlot('sideViewYZ', [], { title: '' });
         }
         
         // 3D 광선 추적 플롯 (배열 기반 수정된 버전)
@@ -1253,7 +1249,7 @@
                     xaxis: { title: 'X (μm)' },
                     yaxis: { title: 'Y (μm)' },
                     zaxis: { title: 'Z (μm)' },
-                    aspectmode: 'cube'
+                    aspectmode: 'data'
                 },
                 showlegend: true
             };
@@ -1261,8 +1257,8 @@
             Plotly.newPlot('plot', traces, layout);
         }
         
-        // 설정 내보내기
-        function exportConfiguration() {
+        // 설정을 클립보드에 복사
+        async function copyConfigurationToClipboard() {
             const config = {
                 arrayConfig: document.getElementById('arrayConfig').value,
                 spacingX: parseFloat(document.getElementById('spacingX').value),
@@ -1282,88 +1278,114 @@
                 version: '2.0'
             };
             
-            const dataStr = JSON.stringify(config, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const configText = JSON.stringify(config, null, 2);
             
-            const exportFileDefaultName = `MLA_config_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
+            try {
+                await navigator.clipboard.writeText(configText);
+                
+                // 텍스트 영역에도 표시
+                document.getElementById('configTextarea').value = configText;
+                
+                // 성공 메시지
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ 복사됨!';
+                button.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+                
+            } catch (err) {
+                // 클립보드 API가 지원되지 않는 경우 텍스트 영역에만 표시
+                document.getElementById('configTextarea').value = configText;
+                document.getElementById('configTextarea').select();
+                alert('설정이 텍스트 영역에 표시되었습니다. 수동으로 복사해주세요.');
+            }
         }
         
-        // 설정 가져오기
-        function importConfiguration(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // 설정 적용
+        function applyConfiguration() {
+            const configText = document.getElementById('configTextarea').value.trim();
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const config = JSON.parse(e.target.result);
-                    
-                    // 설정 값 적용
-                    if (config.arrayConfig) document.getElementById('arrayConfig').value = config.arrayConfig;
-                    if (config.spacingX !== undefined) {
-                        document.getElementById('spacingX').value = config.spacingX;
-                        updateValueDisplay('spacingX', config.spacingX);
-                    }
-                    if (config.spacingY !== undefined) {
-                        document.getElementById('spacingY').value = config.spacingY;
-                        updateValueDisplay('spacingY', config.spacingY);
-                    }
-                    if (config.Rx !== undefined) {
-                        document.getElementById('Rx').value = config.Rx;
-                        updateValueDisplay('Rx', config.Rx);
-                    }
-                    if (config.Ry !== undefined) {
-                        document.getElementById('Ry').value = config.Ry;
-                        updateValueDisplay('Ry', config.Ry);
-                    }
-                    if (config.h !== undefined) {
-                        document.getElementById('h').value = config.h;
-                        updateValueDisplay('h', config.h);
-                    }
-                    if (config.n !== undefined) {
-                        document.getElementById('n').value = config.n;
-                        updateValueDisplay('n', config.n);
-                    }
-                    if (config.alpha !== undefined) {
-                        document.getElementById('alpha').value = config.alpha;
-                        updateValueDisplay('alpha', config.alpha);
-                    }
-                    if (config.resolution !== undefined) {
-                        document.getElementById('resolution').value = config.resolution;
-                        updateValueDisplay('resolution', config.resolution);
-                    }
-                    if (config.colormap) document.getElementById('colormap').value = config.colormap;
-                    if (config.numRays !== undefined) {
-                        document.getElementById('numRays').value = config.numRays;
-                        updateValueDisplay('numRays', config.numRays);
-                    }
-                    if (config.refractiveIndex !== undefined) {
-                        document.getElementById('refractiveIndex').value = config.refractiveIndex;
-                        updateValueDisplay('refractiveIndex', config.refractiveIndex);
-                    }
-                    if (config.propagationDistance !== undefined) {
-                        document.getElementById('propagationDistance').value = config.propagationDistance;
-                        updateValueDisplay('propagationDistance', config.propagationDistance);
-                    }
-                    if (config.raySpacing !== undefined) {
-                        document.getElementById('raySpacing').value = config.raySpacing;
-                        updateValueDisplay('raySpacing', config.raySpacing);
-                    }
-                    
-                    // 플롯 업데이트
-                    updatePlot();
-                    
-                    alert('설정을 성공적으로 가져왔습니다!');
-                } catch (error) {
-                    alert('설정 파일을 읽는 중 오류가 발생했습니다: ' + error.message);
+            if (!configText) {
+                alert('설정 텍스트를 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const config = JSON.parse(configText);
+                
+                // 설정 값 적용
+                if (config.arrayConfig) document.getElementById('arrayConfig').value = config.arrayConfig;
+                if (config.spacingX !== undefined) {
+                    document.getElementById('spacingX').value = config.spacingX;
+                    updateValueDisplay('spacingX', config.spacingX);
                 }
-            };
-            reader.readAsText(file);
+                if (config.spacingY !== undefined) {
+                    document.getElementById('spacingY').value = config.spacingY;
+                    updateValueDisplay('spacingY', config.spacingY);
+                }
+                if (config.Rx !== undefined) {
+                    document.getElementById('Rx').value = config.Rx;
+                    updateValueDisplay('Rx', config.Rx);
+                }
+                if (config.Ry !== undefined) {
+                    document.getElementById('Ry').value = config.Ry;
+                    updateValueDisplay('Ry', config.Ry);
+                }
+                if (config.h !== undefined) {
+                    document.getElementById('h').value = config.h;
+                    updateValueDisplay('h', config.h);
+                }
+                if (config.n !== undefined) {
+                    document.getElementById('n').value = config.n;
+                    updateValueDisplay('n', config.n);
+                }
+                if (config.alpha !== undefined) {
+                    document.getElementById('alpha').value = config.alpha;
+                    updateValueDisplay('alpha', config.alpha);
+                }
+                if (config.resolution !== undefined) {
+                    document.getElementById('resolution').value = config.resolution;
+                    updateValueDisplay('resolution', config.resolution);
+                }
+                if (config.colormap) document.getElementById('colormap').value = config.colormap;
+                if (config.numRays !== undefined) {
+                    document.getElementById('numRays').value = config.numRays;
+                    updateValueDisplay('numRays', config.numRays);
+                }
+                if (config.refractiveIndex !== undefined) {
+                    document.getElementById('refractiveIndex').value = config.refractiveIndex;
+                    updateValueDisplay('refractiveIndex', config.refractiveIndex);
+                }
+                if (config.propagationDistance !== undefined) {
+                    document.getElementById('propagationDistance').value = config.propagationDistance;
+                    updateValueDisplay('propagationDistance', config.propagationDistance);
+                }
+                if (config.raySpacing !== undefined) {
+                    document.getElementById('raySpacing').value = config.raySpacing;
+                    updateValueDisplay('raySpacing', config.raySpacing);
+                }
+                
+                // 플롯 업데이트
+                updatePlot();
+                
+                // 성공 메시지
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ 적용됨!';
+                button.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+                
+            } catch (error) {
+                alert('설정 형식이 올바르지 않습니다: ' + error.message);
+            }
         }
         
         // 기본값 복원
@@ -1416,14 +1438,14 @@
             const data = generateLensArray(config, Rx, Ry, h, n, alpha, resolution, spacingX, spacingY);
             
             switch (currentView) {
+                case 'Contour':
+                    plotContour(data, colormap);
+                    break;
                 case '2D':
                     plot2D(data, colormap);
                     break;
                 case '3D':
                     plot3D(data, colormap);
-                    break;
-                case 'Contour':
-                    plotContour(data, colormap);
                     break;
                 case 'Ray2D':
                     plotRay2D(data, colormap);
@@ -1493,12 +1515,12 @@
                 btn.classList.remove('active');
             });
             
-            if (currentView === '2D') {
+            if (currentView === 'Contour') {
+                document.getElementById('viewContour').classList.add('active');
+            } else if (currentView === '2D') {
                 document.getElementById('view2D').classList.add('active');
             } else if (currentView === '3D') {
                 document.getElementById('view3D').classList.add('active');
-            } else if (currentView === 'Contour') {
-                document.getElementById('viewContour').classList.add('active');
             } else if (currentView === 'Ray2D') {
                 document.getElementById('viewRay2D').classList.add('active');
             } else if (currentView === 'Ray3D') {
@@ -1507,3 +1529,4 @@
         }
     </script>
 </body>
+</html>

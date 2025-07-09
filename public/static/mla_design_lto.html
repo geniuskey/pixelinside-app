@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML 시각화 도구</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔬</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.16.1/plotly.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 98%;
+            max-width: none;
+            margin: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 0;
+            padding: 20px;
+            box-shadow: none;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .left-panel {
+            flex: 0 0 350px;
+            min-width: 350px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 10px;
+        }
+
+        .view-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .plot-container #plot {
+            width: 100%;
+            height: calc(100vh - 300px);
+            min-height: 600px;
+        }
+
+        .plot-container #multiViewContainer {
+            height: calc(100vh - 300px);
+            min-height: 600px;
+        }
+
+        .plot-container #multiViewContainer > div {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .plot-container #multiViewContainer > div > div {
+            height: calc((100vh - 340px) / 2);
+            min-height: 280px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #3498db, #9b59b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 10px;
+        }
+
+        .control-section {
+            margin-bottom: 10px;
+        }
+
+        .control-header {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .control-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-header .arrow {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+
+        .control-header.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+
+        .control-content {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 700px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .control-content.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+        }
+
+        .control-item {
+            margin-bottom: 15px;
+        }
+
+        .control-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .control-item input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+
+        .control-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-item select, .control-item button {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .control-item select:focus, .control-item button:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: right;
+        }
+
+        .view-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .view-btn.active {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .plot-container #plot {
+            width: 100%;
+            height: calc(100vh - 300px);
+            min-height: 600px;
+        }
+
+        .plot-container #multiViewContainer {
+            height: calc(100vh - 300px);
+            min-height: 600px;
+        }
+
+        .plot-container #multiViewContainer > div {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .plot-container #multiViewContainer > div > div {
+            height: calc((100vh - 340px) / 2);
+            min-height: 280px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .info-panel h3 {
+            margin-top: 0;
+        }
+
+        .formula-compact {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+        }
+
+        .math-formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            font-style: italic;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 3px;
+            display: inline;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 마이크로 렌즈 시각화 도구</h1>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="controls">
+                    <div class="control-section">
+                        <div class="control-header" onclick="toggleSection('config')">
+                            <span>⚙️ 설정 및 시각화 관리</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="control-content collapsed" id="config-content">
+                            <div class="control-item">
+                                <button onclick="resetToDefaults()">🔄 기본값 복원</button>
+                                <button onclick="copyConfigurationToClipboard()">📋 설정 복사 (Copy)</button>
+                            </div>
+                            <div class="control-item">
+                                <label for="configTextarea">설정 붙여넣기:</label>
+                                <textarea id="configTextarea" rows="15" style="width: 100%; font-family: monospace; font-size: 12px; border: 2px solid #bdc3c7; border-radius: 5px; padding: 8px;" placeholder="여기에 설정 JSON을 붙여넣으세요..."></textarea>
+                                <button onclick="applyConfiguration()">✅ 설정 적용</button>
+                            </div>
+                            <div class="control-item">
+                                <label for="resolution">해상도: <span class="value-display" id="resolutionValue">100</span></label>
+                                <input type="range" id="resolution" min="10" max="200" step="10" value="100">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="colormap">색상 맵:</label>
+                                <select id="colormap">
+                                    <option value="Viridis">Viridis</option>
+                                    <option value="Plasma">Plasma</option>
+                                    <option value="Inferno">Inferno</option>
+                                    <option value="Magma">Magma</option>
+                                    <option value="Jet">Jet</option>
+                                    <option value="Hot">Hot</option>
+                                    <option value="Cool">Cool</option>
+                                    <option value="Rainbow">Rainbow</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header" onclick="toggleSection('array')">
+                            <span>🔢 배열 구성</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="control-content" id="array-content">
+                            <div class="control-item">
+                                <label for="arrayConfig">배열 구성:</label>
+                                <select id="arrayConfig">
+                                    <option value="1x1" selected>1×1 (단일 렌즈)</option>
+                                    <option value="2x1">2×1 (세로 2개)</option>
+                                    <option value="1x2">1×2 (가로 2개)</option>
+                                    <option value="2x2">2×2 (2×2 배열)</option>
+                                    <option value="3x3">3×3 (3×3 배열)</option>
+                                    <option value="4x4">4×4 (4×4 배열)</option>
+                                </select>
+                            </div>
+
+                            <div class="control-item">
+                                <label for="spacingX">렌즈 간격 X (μm): <span class="value-display" id="spacingXValue">1.0 μm</span></label>
+                                <input type="range" id="spacingX" min="0.1" max="2.0" step="0.01" value="1.0">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="spacingY">렌즈 간격 Y (μm): <span class="value-display" id="spacingYValue">1.0 μm</span></label>
+                                <input type="range" id="spacingY" min="0.1" max="2.0" step="0.01" value="1.0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header" onclick="toggleSection('lens')">
+                            <span>🔍 렌즈 형태 파라미터</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="control-content" id="lens-content">
+                            <div class="control-item">
+                                <label for="ltoThickness">LTO 두께 (μm): <span class="value-display" id="ltoThicknessValue">0.1 μm</span></label>
+                                <input type="range" id="ltoThickness" min="0.01" max="0.5" step="0.01" value="0.1">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="ltoRefractiveIndex">LTO 굴절률: <span class="value-display" id="ltoRefractiveIndexValue">1.46</span></label>
+                                <input type="range" id="ltoRefractiveIndex" min="1.3" max="1.6" step="0.01" value="1.46">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="h">렌즈 높이 (h, μm): <span class="value-display" id="hValue">0.5 μm</span></label>
+                                <input type="range" id="h" min="0.1" max="1.0" step="0.01" value="0.5">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="refractiveIndex">렌즈 굴절률: <span class="value-display" id="refractiveIndexValue">1.5</span></label>
+                                <input type="range" id="refractiveIndex" min="1.3" max="1.8" step="0.01" value="1.5">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="Rx">반지름 X (Rx, μm): <span class="value-display" id="RxValue">0.6 μm</span></label>
+                                <input type="range" id="Rx" min="0.1" max="3.0" step="0.01" value="0.6">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="Ry">반지름 Y (Ry, μm): <span class="value-display" id="RyValue">0.6 μm</span></label>
+                                <input type="range" id="Ry" min="0.1" max="3.0" step="0.01" value="0.6">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="n">슈퍼엘립스 지수 (n): <span class="value-display" id="nValue">2.0</span></label>
+                                <input type="range" id="n" min="1.0" max="5.0" step="0.05" value="2.0">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="alpha">곡률 파라미터 (α): <span class="value-display" id="alphaValue">1.0</span></label>
+                                <input type="range" id="alpha" min="0.1" max="2.0" step="0.01" value="1.0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="control-header" onclick="toggleSection('ray')">
+                            <span>🌈 광선 추적 설정</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="control-content" id="ray-content">
+                            <div class="control-item">
+                                <label for="incidenceTheta">입사각 θ (degree): <span class="value-display" id="incidenceThetaValue">0°</span></label>
+                                <input type="range" id="incidenceTheta" min="-45" max="45" step="1" value="0">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="incidencePhi">방위각 φ (degree): <span class="value-display" id="incidencePhiValue">0°</span></label>
+                                <input type="range" id="incidencePhi" min="-180" max="180" step="5" value="0">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="numRays">광선 수 (per 렌즈): <span class="value-display" id="numRaysValue">20</span></label>
+                                <input type="range" id="numRays" min="3" max="64" step="1" value="36">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="propagationDistance">전파 거리 (μm): <span class="value-display" id="propagationDistanceValue">2 μm</span></label>
+                                <input type="range" id="propagationDistance" min="1" max="80" step="1" value="2">
+                            </div>
+
+                            <div class="control-item">
+                                <label for="raySpacing">광선 간격: <span class="value-display" id="raySpacingValue">0.9</span></label>
+                                <input type="range" id="raySpacing" min="0.5" max="2.0" step="0.1" value="1.5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="view-controls">
+                    <button class="view-btn active" id="viewContour">컨투어 뷰</button>
+                    <button class="view-btn" id="view2D">2D 등고선 뷰</button>
+                    <button class="view-btn" id="view3D">3D 서피스 뷰</button>
+                    <button class="view-btn" id="viewRay2D">2D 광선 추적</button>
+                    <button class="view-btn" id="viewRay3D">3D 광선 추적</button>
+                </div>
+
+                <div class="plot-container">
+                    <div id="plot" style="width: 100%; height: 800px;"></div>
+                </div>
+
+                <div class="plot-container" id="multiViewContainer" style="display: none;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 920px;">
+                        <div id="subView1" style="height: 450px;"></div>
+                        <div id="subView2" style="height: 450px;"></div>
+                        <div id="subView3" style="height: 450px;"></div>
+                        <div id="subView4" style="height: 450px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h3>📐 수학적 모델</h3>
+            <div class="formula-compact">
+                <strong>슈퍼엘립스 방정식:</strong> <span class="math-formula">|x/Rx|^n + |y/Ry|^n = 1</span><br>
+                <strong>렌즈 높이 방정식:</strong> <span class="math-formula">z(r) = h × (1 - r²)^(1/(2α))</span><br>
+                <strong>거리 공식:</strong> <span class="math-formula">r = (|x/Rx|^n + |y/Ry|^n)^(1/n)</span><br>
+                <strong>스넬의 법칙:</strong> <span class="math-formula">n₁sin(θ₁) = n₂sin(θ₂)</span><br>
+                <strong>LTO 층:</strong> <span class="math-formula">저온 산화막 층, ML 위에 적층</span><br>
+                <strong>광선 굴절:</strong> <span class="math-formula">공기→LTO→렌즈 순서로 굴절</span><br>
+                <strong>사광 입사:</strong> <span class="math-formula">θ(입사각), φ(방위각) 지원</span><br>
+                <strong>파라미터:</strong> Rx,Ry(반지름), h(높이), n(슈퍼엘립스 지수), α(곡률), 모든 치수는 μm 단위
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'Contour';
+
+        // 섹션 토글 함수
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const header = content.previousElementSibling;
+
+            content.classList.toggle('collapsed');
+            header.classList.toggle('collapsed');
+        }
+
+        // 파라미터 값 업데이트 함수
+        function updateValueDisplay(id, value) {
+            let displayValue = value;
+            if (id === 'Rx' || id === 'Ry' || id === 'h' || id === 'spacingX' || id === 'spacingY' || id === 'propagationDistance' || id === 'ltoThickness') {
+                displayValue = value + ' μm';
+            } else if (id === 'incidenceTheta' || id === 'incidencePhi') {
+                displayValue = value + '°';
+            }
+            const element = document.getElementById(id + 'Value');
+            if (element) {
+                element.textContent = displayValue;
+            }
+        }
+
+        // 타원형 슈퍼엘립스 거리 계산
+        function superellipseDistance(x, y, Rx, Ry, n) {
+            return Math.pow(Math.pow(Math.abs(x / Rx), n) + Math.pow(Math.abs(y / Ry), n), 1/n);
+        }
+
+        // 렌즈 높이 계산 (ML 표면만)
+        function lensHeight(r, h, alpha) {
+            if (r > 1) return 0;
+            return h * Math.pow(1 - r * r, 1 / (2 * alpha));
+        }
+
+        // 분리된 표면 생성: ML 표면과 LTO 표면
+        function generateSeparatedSurfaces(config, Rx, Ry, h, n, alpha, resolution, spacingX, spacingY, ltoThickness) {
+            const [rows, cols] = config.split('x').map(Number);
+
+            // 전체 영역 크기 계산
+            const totalWidth = cols * spacingX;
+            const totalHeight = rows * spacingY;
+            const maxSizeX = totalWidth / 2;
+            const maxSizeY = totalHeight / 2;
+
+            const stepX = totalWidth / resolution;
+            const stepY = totalHeight / resolution;
+            const x = [];
+            const y = [];
+            const mlSurface = [];  // ML 표면
+            const ltoSurface = []; // LTO 표면
+
+            for (let i = 0; i <= resolution; i++) {
+                const xi = -maxSizeX + i * stepX;
+                const row_y = [];
+                const row_ml = [];
+                const row_lto = [];
+
+                for (let j = 0; j <= resolution; j++) {
+                    const yi = -maxSizeY + j * stepY;
+                    let maxML = 0;    // ML 최대 높이
+                    let maxLTO = ltoThickness; // LTO 기본 두께
+
+                    // 각 렌즈 위치에서 높이 계산
+                    for (let row = 0; row < rows; row++) {
+                        for (let col = 0; col < cols; col++) {
+                            const centerX = (col - (cols - 1) / 2) * spacingX;
+                            const centerY = (row - (rows - 1) / 2) * spacingY;
+
+                            const relX = xi - centerX;
+                            const relY = yi - centerY;
+
+                            const r = superellipseDistance(relX, relY, Rx, Ry, n);
+
+                            if (r <= 1) {
+                                const mlHeight = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                                const ltoHeight = mlHeight + ltoThickness;
+
+                                maxML = Math.max(maxML, mlHeight);
+                                maxLTO = Math.max(maxLTO, ltoHeight);
+                            }
+                        }
+                    }
+
+                    row_y.push(yi);
+                    row_ml.push(maxML);
+                    row_lto.push(maxLTO);
+                }
+
+                x.push(xi);
+                y.push(row_y);
+                mlSurface.push(row_ml);
+                ltoSurface.push(row_lto);
+            }
+
+            return {
+                x,
+                y,
+                mlSurface,   // ML 표면 Z 좌표
+                ltoSurface   // LTO 표면 Z 좌표
+            };
+        }
+
+        // 단일 렌즈의 분리된 표면
+        function generateSingleLensSeparatedSurfaces(Rx, Ry, h, n, alpha, resolution, sizeX, sizeY, ltoThickness) {
+            const stepX = (2 * sizeX) / resolution;
+            const stepY = (2 * sizeY) / resolution;
+            const x = [];
+            const y = [];
+            const mlSurface = [];
+            const ltoSurface = [];
+
+            for (let i = 0; i <= resolution; i++) {
+                const xi = -sizeX + i * stepX;
+                const row_y = [];
+                const row_ml = [];
+                const row_lto = [];
+
+                for (let j = 0; j <= resolution; j++) {
+                    const yi = -sizeY + j * stepY;
+                    const r = superellipseDistance(xi, yi, Rx, Ry, n);
+
+                    let mlZ = 0;
+                    let ltoZ = ltoThickness;
+
+                    if (r <= 1) {
+                        mlZ = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                        ltoZ = mlZ + ltoThickness;
+                    }
+
+                    row_y.push(yi);
+                    row_ml.push(mlZ);
+                    row_lto.push(ltoZ);
+                }
+
+                x.push(xi);
+                y.push(row_y);
+                mlSurface.push(row_ml);
+                ltoSurface.push(row_lto);
+            }
+
+            return { x, y, mlSurface, ltoSurface };
+        }
+
+        // 입사각을 고려한 초기 광선 방향 계산
+        function calculateIncidentDirection(thetaDeg, phiDeg) {
+            const theta = thetaDeg * Math.PI / 180; // degree to radian
+            const phi = phiDeg * Math.PI / 180;
+
+            // 구면 좌표계에서 직교 좌표계로 변환
+            // theta: 수직축(Z)에서의 각도, phi: XY 평면에서의 방위각
+            const dx = Math.sin(theta) * Math.cos(phi);
+            const dy = Math.sin(theta) * Math.sin(phi);
+            const dz = -Math.cos(theta); // 하향을 음수로
+
+            return { dx, dy, dz };
+        }
+
+        // 사광 입사를 고려한 시작점 계산
+        function calculateStartPosition(targetX, targetY, incidentDirection, startHeight) {
+            // 타겟 위치에서 역방향으로 계산하여 시작점 구하기
+            // 광선이 (targetX, targetY, ltoZ)에 도달하도록 하는 시작점 계산
+
+            const distance = startHeight / Math.abs(incidentDirection.dz); // Z 방향 거리
+
+            const startX = targetX - incidentDirection.dx * distance;
+            const startY = targetY - incidentDirection.dy * distance;
+
+            return { startX, startY };
+        }
+
+        // 렌즈 표면의 법선 벡터 계산
+        function calculateSurfaceNormal(x, y, Rx, Ry, h, n, alpha) {
+            const r = superellipseDistance(x, y, Rx, Ry, n);
+            if (r >= 1) return { nx: 0, ny: 0, nz: 1 }; // 평면 영역
+
+            // 수치적 미분으로 법선 계산
+            const eps = 0.001;
+            const z0 = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+
+            const rx = superellipseDistance(x + eps, y, Rx, Ry, n);
+            const ry = superellipseDistance(x, y + eps, Rx, Ry, n);
+
+            let zx = 0, zy = 0;
+            if (rx < 1) zx = h * Math.pow(1 - rx * rx, 1 / (2 * alpha));
+            if (ry < 1) zy = h * Math.pow(1 - ry * ry, 1 / (2 * alpha));
+
+            const dzdx = (zx - z0) / eps;
+            const dzdy = (zy - z0) / eps;
+
+            // 법선 벡터 정규화
+            const length = Math.sqrt(dzdx * dzdx + dzdy * dzdy + 1);
+            return { nx: -dzdx / length, ny: -dzdy / length, nz: 1 / length };
+        }
+
+        // 스넬의 법칙을 이용한 굴절 계산
+        function refractRay(incident, normal, n1, n2) {
+            const { dx, dy, dz } = incident;
+            const { nx, ny, nz } = normal;
+
+            // 입사각 계산
+            const cosI = -(dx * nx + dy * ny + dz * nz);
+            const eta = n1 / n2;
+            const k = 1 - eta * eta * (1 - cosI * cosI);
+
+            if (k < 0) {
+                // 전반사 - 반사만 발생
+                return {
+                    dx: dx + 2 * cosI * nx,
+                    dy: dy + 2 * cosI * ny,
+                    dz: dz + 2 * cosI * nz
+                };
+            }
+
+            const sqrtK = Math.sqrt(k);
+            return {
+                dx: eta * dx + (eta * cosI - sqrtK) * nx,
+                dy: eta * dy + (eta * cosI - sqrtK) * ny,
+                dz: eta * dz + (eta * cosI - sqrtK) * nz
+            };
+        }
+
+        // 특정 렌즈와 광선의 교점 검출 (ML과 LTO 분리)
+        function findRayLensIntersection(rayX, rayY, lensCenterX, lensCenterY, Rx, Ry, h, n, alpha, ltoThickness) {
+            // 렌즈 중심 기준 상대 좌표
+            const relX = rayX - lensCenterX;
+            const relY = rayY - lensCenterY;
+
+            // 이 렌즈 범위 내에 있는지 확인
+            const r = superellipseDistance(relX, relY, Rx, Ry, n);
+            if (r > 1) {
+                return null; // 이 렌즈 범위 밖
+            }
+
+            // ML 표면 높이와 LTO 표면 높이 계산
+            const mlHeight = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+            const ltoHeight = mlHeight + ltoThickness;
+
+            return {
+                x: rayX,
+                y: rayY,
+                mlZ: mlHeight,
+                ltoZ: ltoHeight,
+                lensCenter: { x: lensCenterX, y: lensCenterY },
+                relativePos: { x: relX, y: relY },
+                r: r
+            };
+        }
+
+        // 배열의 모든 렌즈와 광선의 교점 찾기
+        function findAllLensIntersections(rayX, rayY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, ltoThickness) {
+            const [rows, cols] = config.split('x').map(Number);
+            const intersections = [];
+
+            for (let lensRow = 0; lensRow < rows; lensRow++) {
+                for (let lensCol = 0; lensCol < cols; lensCol++) {
+                    const lensCenterX = (lensCol - (cols - 1) / 2) * spacingX;
+                    const lensCenterY = (lensRow - (rows - 1) / 2) * spacingY;
+
+                    const intersection = findRayLensIntersection(
+                        rayX, rayY, lensCenterX, lensCenterY, Rx, Ry, h, n, alpha, ltoThickness
+                    );
+
+                    if (intersection) {
+                        intersection.lensIndex = { row: lensRow, col: lensCol };
+                        intersections.push(intersection);
+                    }
+                }
+            }
+
+            // 가장 높은 교점 선택 (위에 있는 렌즈)
+            if (intersections.length === 0) return null;
+
+            return intersections.reduce((highest, current) =>
+                current.ltoZ > highest.ltoZ ? current : highest
+            );
+        }
+
+        // 올바른 광선 추적: 2회 굴절 (LTO 표면 1회, ML 표면 1회) + 사광 입사 지원
+        function traceRayThroughLensArray(startX, startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, lensRefractiveIndex, propagationDistance, ltoThickness, ltoRefractiveIndex, incidentDirection) {
+            const startZ = h + ltoThickness + 0.1; // 시작 높이
+            const path = [{ x: startX, y: startY, z: startZ }]; // 시작점 (공기 중)
+
+            // 사광 입사를 고려하여 LTO 표면과의 교점 찾기
+            // 광선이 LTO 표면에 도달하는 실제 위치 계산
+            let intersectionX = startX;
+            let intersectionY = startY;
+            let intersectionFound = false;
+
+            // 수치적으로 LTO 표면과의 교점 찾기
+            for (let t = 0; t < 2.0; t += 0.001) {
+                const testX = startX + incidentDirection.dx * t;
+                const testY = startY + incidentDirection.dy * t;
+                const testZ = startZ + incidentDirection.dz * t;
+
+                // 현재 위치에서 LTO 표면 높이 확인
+                const testIntersection = findAllLensIntersections(testX, testY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, ltoThickness);
+
+                if (testIntersection && testZ <= testIntersection.ltoZ) {
+                    intersectionX = testX;
+                    intersectionY = testY;
+                    intersectionFound = true;
+                    break;
+                }
+            }
+
+            if (!intersectionFound) {
+                // LTO 표면과 만나지 않으면 사광으로 직진
+                const endX = startX + incidentDirection.dx * propagationDistance;
+                const endY = startY + incidentDirection.dy * propagationDistance;
+                const endZ = startZ + incidentDirection.dz * propagationDistance;
+                path.push({ x: endX, y: endY, z: endZ });
+                return { path, focused: false, endPoint: { x: endX, y: endY, z: endZ }, lensIndex: null };
+            }
+
+            // 실제 교점에서 LTO 표면 정보 재계산
+            const intersection = findAllLensIntersections(intersectionX, intersectionY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, ltoThickness);
+
+            let currentDirection = { ...incidentDirection }; // 사광 입사 방향
+            let currentX = intersectionX;
+            let currentY = intersectionY;
+
+            // 공기 중에서 LTO 표면까지의 사광 경로 추가
+            path.push({ x: currentX, y: currentY, z: intersection.ltoZ });
+
+            // 1단계: 공기 → LTO 표면에서 굴절 (LTO 표면은 ML 표면과 평행한 곡면)
+            // LTO 표면의 법선은 ML 표면의 법선과 동일
+            const ltoNormal = calculateSurfaceNormal(
+                intersection.relativePos.x,
+                intersection.relativePos.y,
+                Rx, Ry, h, n, alpha
+            );
+
+            const refracted1 = refractRay(currentDirection, ltoNormal, 1.0, ltoRefractiveIndex);
+            currentDirection = refracted1;
+
+            // LTO 내부를 통과하여 ML 표면과의 실제 교점 찾기
+            // 굴절된 광선이 ML 표면에 접촉하는 점을 수치적으로 계산
+            let step = 0.001; // 작은 스텝으로 이동
+            let tempX = currentX;
+            let tempY = currentY;
+            let tempZ = intersection.ltoZ;
+
+            // ML 표면에 도달할 때까지 반복 계산
+            while (step < 1.0) {
+                tempX += currentDirection.dx * step;
+                tempY += currentDirection.dy * step;
+                tempZ += currentDirection.dz * step;
+
+                // 현재 위치에서 가장 가까운 렌즈의 ML 표면 높이 계산
+                const currentMLIntersection = findAllLensIntersections(tempX, tempY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, ltoThickness);
+                const currentMLZ = currentMLIntersection ? currentMLIntersection.mlZ : 0;
+
+                // ML 표면에 도달했는지 확인
+                if (tempZ <= currentMLZ) {
+                    break;
+                }
+
+                step += 0.001;
+            }
+
+            // ML 표면 접촉점으로 좌표 업데이트
+            currentX = tempX;
+            currentY = tempY;
+
+            // 2단계: LTO → ML 표면에서 굴절 (곡면 경계면)
+            path.push({ x: currentX, y: currentY, z: intersection.mlZ });
+
+            // ML 표면에서의 법선 벡터 계산 (새로운 접촉점 기준)
+            const finalIntersection = findAllLensIntersections(currentX, currentY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, ltoThickness);
+            const mlNormal = calculateSurfaceNormal(
+                finalIntersection ? finalIntersection.relativePos.x : 0,
+                finalIntersection ? finalIntersection.relativePos.y : 0,
+                Rx, Ry, h, n, alpha
+            );
+
+            // LTO에서 렌즈로의 굴절 (전반사 방지)
+            const refracted2 = refractRay(currentDirection, mlNormal, ltoRefractiveIndex, lensRefractiveIndex);
+
+            // 전반사가 발생하는 경우 강제로 투과시킴
+            if (refracted2.dz >= 0) {
+                // 전반사 방지: 작은 각도로 투과
+                currentDirection = {
+                    dx: currentDirection.dx * 0.8,
+                    dy: currentDirection.dy * 0.8,
+                    dz: -Math.abs(currentDirection.dz) * 0.9
+                };
+            } else {
+                currentDirection = refracted2;
+            }
+
+            // 3단계: ML 내부에서 직선 전파 (ML 아래쪽은 모두 동일한 매질이므로 굴절 없음)
+            const endX = currentX + currentDirection.dx * propagationDistance;
+            const endY = currentY + currentDirection.dy * propagationDistance;
+            const endZ = intersection.mlZ + currentDirection.dz * propagationDistance;
+
+            path.push({ x: endX, y: endY, z: endZ });
+
+            return {
+                path,
+                focused: true,
+                endPoint: { x: endX, y: endY, z: endZ },
+                lensIndex: intersection.lensIndex,
+                intersection: intersection
+            };
+        }
+
+        // 집속점 계산
+        function calculateFocalPoint(endPoints) {
+            if (endPoints.length === 0) return null;
+
+            let sumX = 0, sumY = 0, sumZ = 0;
+            let count = 0;
+
+            endPoints.forEach(point => {
+                if (point.focused) {
+                    sumX += point.endPoint.x;
+                    sumY += point.endPoint.y;
+                    sumZ += point.endPoint.z;
+                    count++;
+                }
+            });
+
+            if (count === 0) return null;
+
+            return {
+                x: sumX / count,
+                y: sumY / count,
+                z: sumZ / count,
+                count: count
+            };
+        }
+
+        // 컨투어 플롯 (ML과 LTO 표면 분리 표시)
+        function plotContour(data, colormap) {
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const ltoThickness = parseFloat(document.getElementById('ltoThickness').value);
+
+            const singleLensData = generateSingleLensSeparatedSurfaces(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5, ltoThickness);
+
+            // Top View (ML과 LTO 등고선)
+            const mlTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.mlSurface,
+                type: 'contour',
+                colorscale: 'Blues',
+                showscale: true,
+                name: 'ML Surface',
+                contours: {
+                    showlines: true,
+                    coloring: 'lines'
+                }
+            };
+
+            const ltoTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.ltoSurface,
+                type: 'contour',
+                colorscale: 'Reds',
+                showscale: true,
+                name: 'LTO Surface',
+                contours: {
+                    showlines: true,
+                    coloring: 'lines'
+                }
+            };
+
+            const topLayout = {
+                title: 'Top View (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+
+            // Side Views - ML과 LTO 프로파일 함께 표시
+            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
+            const centerXIndex = Math.floor(singleLensData.x.length / 2);
+
+            // XZ View
+            const xzTraceML = {
+                x: singleLensData.x,
+                y: singleLensData.mlSurface.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const xzTraceLTO = {
+                x: singleLensData.x,
+                y: singleLensData.ltoSurface.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            const xzLayout = {
+                title: 'Side View XZ (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+
+            // YZ View
+            const yzTraceML = {
+                x: singleLensData.y[0],
+                y: singleLensData.mlSurface[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const yzTraceLTO = {
+                x: singleLensData.y[0],
+                y: singleLensData.ltoSurface[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            const yzLayout = {
+                title: 'Side View YZ (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'Y (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+
+            // Diagonal View
+            const diagonalML = [];
+            const diagonalLTO = [];
+            const diagonalX = [];
+            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
+
+            for (let i = 0; i < minSize; i++) {
+                const xVal = singleLensData.x[i] * Math.sqrt(2);
+                const mlVal = singleLensData.mlSurface[i][i];
+                const ltoVal = singleLensData.ltoSurface[i][i];
+                diagonalX.push(xVal);
+                diagonalML.push(mlVal);
+                diagonalLTO.push(ltoVal);
+            }
+
+            const diagTraceML = {
+                x: diagonalX,
+                y: diagonalML,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const diagTraceLTO = {
+                x: diagonalX,
+                y: diagonalLTO,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            const diagLayout = {
+                title: 'Diagonal View (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'Diagonal (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+
+            Plotly.newPlot('subView1', [mlTrace, ltoTrace], topLayout);
+            Plotly.newPlot('subView2', [diagTraceML, diagTraceLTO], diagLayout);
+            Plotly.newPlot('subView3', [xzTraceML, xzTraceLTO], xzLayout);
+            Plotly.newPlot('subView4', [yzTraceML, yzTraceLTO], yzLayout);
+        }
+
+        // 2D 등고선 플롯 (ML과 LTO 표면 분리 표시)
+        function plot2D(data, colormap) {
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const ltoThickness = parseFloat(document.getElementById('ltoThickness').value);
+
+            const singleLensData = generateSingleLensSeparatedSurfaces(Rx, Ry, h, n, alpha, resolution, Rx * 1.5, Ry * 1.5, ltoThickness);
+
+            // Top View (ML과 LTO 등고선 채움)
+            const mlTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.mlSurface,
+                type: 'contour',
+                colorscale: 'Blues',
+                showscale: true,
+                name: 'ML Surface',
+                contours: {
+                    showlines: true,
+                    coloring: 'fill'
+                },
+                opacity: 0.7
+            };
+
+            const ltoTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.ltoSurface,
+                type: 'contour',
+                colorscale: 'Reds',
+                showscale: true,
+                name: 'LTO Surface',
+                contours: {
+                    showlines: true,
+                    coloring: 'fill'
+                },
+                opacity: 0.5
+            };
+
+            const topLayout = {
+                title: 'Top View 등고선 (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'X (μm)' },
+                yaxis: { title: 'Y (μm)', scaleanchor: 'x' },
+                margin: { l: 50, r: 50, t: 50, b: 50 }
+            };
+
+            // Side Views와 Diagonal View는 컨투어와 동일
+            const centerYIndex = Math.floor(singleLensData.y[0].length / 2);
+            const centerXIndex = Math.floor(singleLensData.x.length / 2);
+
+            const xzTraceML = {
+                x: singleLensData.x,
+                y: singleLensData.mlSurface.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const xzTraceLTO = {
+                x: singleLensData.x,
+                y: singleLensData.ltoSurface.map(row => row[centerYIndex]),
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            const yzTraceML = {
+                x: singleLensData.y[0],
+                y: singleLensData.mlSurface[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const yzTraceLTO = {
+                x: singleLensData.y[0],
+                y: singleLensData.ltoSurface[centerXIndex],
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            // Diagonal View
+            const diagonalML = [];
+            const diagonalLTO = [];
+            const diagonalX = [];
+            const minSize = Math.min(singleLensData.x.length, singleLensData.y[0].length);
+
+            for (let i = 0; i < minSize; i++) {
+                const xVal = singleLensData.x[i] * Math.sqrt(2);
+                const mlVal = singleLensData.mlSurface[i][i];
+                const ltoVal = singleLensData.ltoSurface[i][i];
+                diagonalX.push(xVal);
+                diagonalML.push(mlVal);
+                diagonalLTO.push(ltoVal);
+            }
+
+            const diagTraceML = {
+                x: diagonalX,
+                y: diagonalML,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'ML Surface',
+                line: { color: 'blue', width: 3 }
+            };
+
+            const diagTraceLTO = {
+                x: diagonalX,
+                y: diagonalLTO,
+                type: 'scatter',
+                mode: 'lines',
+                name: 'LTO Surface',
+                line: { color: 'red', width: 2 }
+            };
+
+            Plotly.newPlot('subView1', [mlTrace, ltoTrace], topLayout);
+            Plotly.newPlot('subView2', [diagTraceML, diagTraceLTO], {
+                title: 'Diagonal View (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'Diagonal (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 }
+            });
+            Plotly.newPlot('subView3', [xzTraceML, xzTraceLTO], {
+                title: 'Side View XZ (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'X (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 }
+            });
+            Plotly.newPlot('subView4', [yzTraceML, yzTraceLTO], {
+                title: 'Side View YZ (ML: 파랑, LTO: 빨강)',
+                xaxis: { title: 'Y (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 }
+            });
+        }
+
+        // 3D 서피스 플롯 (ML과 LTO 표면 함께)
+        function plot3D(data, colormap) {
+            document.getElementById('multiViewContainer').style.display = 'none';
+            document.getElementById('plot').parentElement.style.display = 'block';
+
+            // ML 표면
+            const mlTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.mlSurface,
+                type: 'surface',
+                colorscale: 'Blues',
+                showscale: true,
+                name: 'ML Surface',
+                opacity: 0.8,
+                colorbar: {
+                    title: 'ML 높이 (μm)',
+                    x: 0.9
+                }
+            };
+
+            // LTO 표면
+            const ltoTrace = {
+                x: data.x,
+                y: data.y[0],
+                z: data.ltoSurface,
+                type: 'surface',
+                colorscale: 'Reds',
+                showscale: true,
+                name: 'LTO Surface',
+                opacity: 0.6,
+                colorbar: {
+                    title: 'LTO 높이 (μm)',
+                    x: 1.0
+                }
+            };
+
+            const layout = {
+                title: '3D 서피스 뷰 - ML (파랑) + LTO (빨강)',
+                scene: {
+                    xaxis: { title: 'X 좌표 (μm)' },
+                    yaxis: { title: 'Y 좌표 (μm)' },
+                    zaxis: { title: 'Z 좌표 (높이, μm)' },
+                    aspectmode: 'data'
+                }
+            };
+
+            Plotly.newPlot('plot', [mlTrace, ltoTrace], layout);
+        }
+
+        // 2D 광선 추적 플롯 (개선된 굴절 포함)
+        function plotRay2D(data, colormap) {
+            document.getElementById('plot').parentElement.style.display = 'none';
+            document.getElementById('multiViewContainer').style.display = 'block';
+
+            const config = document.getElementById('arrayConfig').value;
+            const [rows, cols] = config.split('x').map(Number);
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const numRays = parseInt(document.getElementById('numRays').value);
+            const refractiveIndex = parseFloat(document.getElementById('refractiveIndex').value);
+            const propagationDistance = parseFloat(document.getElementById('propagationDistance').value);
+            const raySpacing = parseFloat(document.getElementById('raySpacing').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            const ltoThickness = parseFloat(document.getElementById('ltoThickness').value);
+            const ltoRefractiveIndex = parseFloat(document.getElementById('ltoRefractiveIndex').value);
+            const incidenceTheta = parseFloat(document.getElementById('incidenceTheta').value);
+            const incidencePhi = parseFloat(document.getElementById('incidencePhi').value);
+
+            // 사광 입사 방향 계산
+            const incidentDirection = calculateIncidentDirection(incidenceTheta, incidencePhi);
+
+            // X축 뷰
+            const tracesX = [];
+            const endPointsX = [];
+
+            // 렌즈 프로파일 그리기 (ML과 LTO 모두)
+            for (let lensCol = 0; lensCol < cols; lensCol++) {
+                const lensCenterX = (lensCol - (cols - 1) / 2) * spacingX;
+                const lensXML = [], lensZML = [];
+                const lensXLTO = [], lensZLTO = [];
+
+                for (let x = lensCenterX - Rx * 1.2; x <= lensCenterX + Rx * 1.2; x += 0.05) {
+                    const localX = x - lensCenterX;
+                    const r = Math.abs(localX / Rx);
+                    if (r <= 1) {
+                        const mlZ = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                        const ltoZ = mlZ + ltoThickness;
+
+                        lensXML.push(x);
+                        lensZML.push(mlZ);
+                        lensXLTO.push(x);
+                        lensZLTO.push(ltoZ);
+                    }
+                }
+
+                tracesX.push({
+                    x: lensXML,
+                    y: lensZML,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `ML ${lensCol+1}`,
+                    line: { color: 'blue', width: 3 },
+                    showlegend: false
+                });
+
+                tracesX.push({
+                    x: lensXLTO,
+                    y: lensZLTO,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `LTO ${lensCol+1}`,
+                    line: { color: 'red', width: 2 },
+                    showlegend: false
+                });
+            }
+
+            // X축 광선 추적
+            const colors = ['green', 'orange', 'purple', 'brown', 'pink', 'gray', 'cyan', 'magenta'];
+            let rayIndex = 0;
+
+            const totalWidth = cols * spacingX;
+            const rayStep = totalWidth * raySpacing / numRays;
+
+            for (let i = 0; i < numRays; i++) {
+                const targetX = (i - (numRays-1)/2) * rayStep; // 렌즈에 도달할 목표 X 위치
+
+                // 사광 입사를 고려한 실제 시작점 계산
+                const startHeight = h + ltoThickness + 0.1;
+                const startPos = calculateStartPosition(targetX, 0, incidentDirection, startHeight);
+
+                const rayResult = traceRayThroughLensArray(startPos.startX, startPos.startY, config, spacingX, 0, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance, ltoThickness, ltoRefractiveIndex, incidentDirection);
+
+                const rayX = rayResult.path.map(p => p.x);
+                const rayZ = rayResult.path.map(p => p.z);
+
+                tracesX.push({
+                    x: rayX,
+                    y: rayZ,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: `광선 ${rayIndex+1}`,
+                    line: { color: colors[rayIndex % colors.length], width: 2 },
+                    marker: { size: 4 },
+                    showlegend: false
+                });
+
+                if (rayResult.focused) {
+                    endPointsX.push(rayResult);
+                }
+                rayIndex++;
+            }
+
+            // Y축 뷰 (동일한 방식)
+            const tracesY = [];
+            const endPointsY = [];
+
+            for (let lensRow = 0; lensRow < rows; lensRow++) {
+                const lensCenterY = (lensRow - (rows - 1) / 2) * spacingY;
+                const lensYML = [], lensZML = [];
+                const lensYLTO = [], lensZLTO = [];
+
+                for (let y = lensCenterY - Ry * 1.2; y <= lensCenterY + Ry * 1.2; y += 0.05) {
+                    const localY = y - lensCenterY;
+                    const r = Math.abs(localY / Ry);
+                    if (r <= 1) {
+                        const mlZ = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                        const ltoZ = mlZ + ltoThickness;
+
+                        lensYML.push(y);
+                        lensZML.push(mlZ);
+                        lensYLTO.push(y);
+                        lensZLTO.push(ltoZ);
+                    }
+                }
+
+                tracesY.push({
+                    x: lensYML,
+                    y: lensZML,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `ML ${lensRow+1}`,
+                    line: { color: 'blue', width: 3 },
+                    showlegend: false
+                });
+
+                tracesY.push({
+                    x: lensYLTO,
+                    y: lensZLTO,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: `LTO ${lensRow+1}`,
+                    line: { color: 'red', width: 2 },
+                    showlegend: false
+                });
+            }
+
+            rayIndex = 0;
+            const totalHeight = rows * spacingY;
+            const rayStepY = totalHeight * raySpacing / numRays;
+
+            for (let i = 0; i < numRays; i++) {
+                const targetY = (i - (numRays-1)/2) * rayStepY; // 렌즈에 도달할 목표 Y 위치
+
+                // 사광 입사를 고려한 실제 시작점 계산
+                const startHeight = h + ltoThickness + 0.1;
+                const startPos = calculateStartPosition(0, targetY, incidentDirection, startHeight);
+
+                const rayResult = traceRayThroughLensArray(startPos.startX, startPos.startY, config, 0, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance, ltoThickness, ltoRefractiveIndex, incidentDirection);
+
+                const rayY = rayResult.path.map(p => p.y);
+                const rayZ = rayResult.path.map(p => p.z);
+
+                tracesY.push({
+                    x: rayY,
+                    y: rayZ,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: `광선 ${rayIndex+1}`,
+                    line: { color: colors[rayIndex % colors.length], width: 2 },
+                    marker: { size: 4 },
+                    showlegend: false
+                });
+
+                if (rayResult.focused) {
+                    endPointsY.push(rayResult);
+                }
+                rayIndex++;
+            }
+
+            // Diagonal 뷰
+            const tracesDiag = [];
+            const endPointsDiag = [];
+
+            // 대각선 방향 렌즈 프로파일 그리기
+            for (let lensRow = 0; lensRow < rows; lensRow++) {
+                for (let lensCol = 0; lensCol < cols; lensCol++) {
+                    if (lensRow !== lensCol) continue;
+                    const lensCenterX = (lensCol - (cols - 1) / 2) * spacingX;
+                    const lensCenterY = (lensRow - (rows - 1) / 2) * spacingY;
+                    const lensCenterDiag = (lensCenterX + lensCenterY) / Math.sqrt(2);
+
+                    const lensML = [], lensLTO = [], lensDiag = [];
+
+                    // 대각선 방향으로 렌즈 프로파일 생성
+                    const maxRadius = Math.max(Rx, Ry);
+                    for (let d = lensCenterDiag - maxRadius * 1.2; d <= lensCenterDiag + maxRadius * 1.2; d += 0.05) {
+                        // 대각선 좌표를 X, Y 좌표로 변환
+                        const localX = (d - lensCenterDiag) / Math.sqrt(2);
+                        const localY = (d - lensCenterDiag) / Math.sqrt(2);
+
+                        const r = superellipseDistance(localX, localY, Rx, Ry, n);
+                        if (r <= 1) {
+                            const mlZ = h * Math.pow(1 - r * r, 1 / (2 * alpha));
+                            const ltoZ = mlZ + ltoThickness;
+
+                            lensDiag.push(d);
+                            lensML.push(mlZ);
+                            lensLTO.push(ltoZ);
+                        }
+                    }
+
+                    if (lensDiag.length > 0) {
+                        tracesDiag.push({
+                            x: lensDiag,
+                            y: lensML,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: `ML ${lensRow+1}-${lensCol+1}`,
+                            line: { color: 'blue', width: 3 },
+                            showlegend: false
+                        });
+
+                        tracesDiag.push({
+                            x: lensDiag,
+                            y: lensLTO,
+                            type: 'scatter',
+                            mode: 'lines',
+                            name: `LTO ${lensRow+1}-${lensCol+1}`,
+                            line: { color: 'red', width: 2 },
+                            showlegend: false
+                        });
+                    }
+                }
+            }
+
+            // 대각선 광선 추적
+            const maxDiag = Math.max(totalWidth, totalHeight);
+            const rayStepDiag = maxDiag * raySpacing / numRays;
+
+            rayIndex = 0;
+            for (let i = 0; i < numRays; i++) {
+                const targetDiag = (i - (numRays-1)/2) * rayStepDiag;
+                const targetX = targetDiag / Math.sqrt(2);
+                const targetY = targetDiag / Math.sqrt(2);
+
+                // 사광 입사를 고려한 실제 시작점 계산
+                const startHeight = h + ltoThickness + 0.1;
+                const startPos = calculateStartPosition(targetX, targetY, incidentDirection, startHeight);
+
+                const rayResult = traceRayThroughLensArray(startPos.startX, startPos.startY, config, spacingX, spacingY, Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance, ltoThickness, ltoRefractiveIndex, incidentDirection);
+
+                const rayDiag = rayResult.path.map(p => (p.x + p.y) / Math.sqrt(2));
+                const rayZ = rayResult.path.map(p => p.z);
+
+                tracesDiag.push({
+                    x: rayDiag,
+                    y: rayZ,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    name: `대각선 광선 ${rayIndex+1}`,
+                    line: { color: colors[rayIndex % colors.length], width: 2 },
+                    marker: { size: 4 },
+                    showlegend: false
+                });
+
+                if (rayResult.focused) {
+                    endPointsDiag.push(rayResult);
+                }
+                rayIndex++;
+            }
+
+            // 집속점 계산
+            const focalPointX = calculateFocalPoint(endPointsX);
+            const focalPointY = calculateFocalPoint(endPointsY);
+            const focalPointDiag = calculateFocalPoint(endPointsDiag);
+
+            let focalInfoX = "집속점 없음";
+            let focalInfoY = "집속점 없음";
+            let focalInfoDiag = "집속점 없음";
+
+            if (focalPointX) {
+                focalInfoX = `X: ${focalPointX.x.toFixed(3)}μm, Z: ${focalPointX.z.toFixed(3)}μm (${focalPointX.count}개 광선)`;
+            }
+
+            if (focalPointY) {
+                focalInfoY = `Y: ${focalPointY.y.toFixed(3)}μm, Z: ${focalPointY.z.toFixed(3)}μm (${focalPointY.count}개 광선)`;
+            }
+
+            if (focalPointDiag) {
+                const diagPos = (focalPointDiag.x + focalPointDiag.y) / Math.sqrt(2);
+                focalInfoDiag = `D: ${diagPos.toFixed(3)}μm, Z: ${focalPointDiag.z.toFixed(3)}μm (${focalPointDiag.count}개 광선)`;
+            }
+
+            Plotly.newPlot('subView1', tracesDiag, {
+                title: `Diagonal 뷰 - ML(파랑) + LTO(빨강) + 광선추적 (θ=${incidenceTheta}°, φ=${incidencePhi}°)<br><span style="font-size:12px">집속점: ${focalInfoDiag}</span>`,
+                xaxis: { title: 'Diagonal (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 80, b: 50 }
+            });
+
+            Plotly.newPlot('subView2', tracesX, {
+                title: `X축 뷰 - ML(파랑) + LTO(빨강) + 광선추적 (θ=${incidenceTheta}°, φ=${incidencePhi}°)<br><span style="font-size:12px">집속점: ${focalInfoX}</span>`,
+                xaxis: { title: 'X 좌표 (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z 좌표 (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 80, b: 50 }
+            });
+
+            Plotly.newPlot('subView3', tracesY, {
+                title: `Y축 뷰 - ML(파랑) + LTO(빨강) + 광선추적 (θ=${incidenceTheta}°, φ=${incidencePhi}°)<br><span style="font-size:12px">집속점: ${focalInfoY}</span>`,
+                xaxis: { title: 'Y 좌표 (μm)', scaleanchor: 'y' },
+                yaxis: { title: 'Z 좌표 (μm)', scaleratio: 1 },
+                margin: { l: 50, r: 50, t: 80, b: 50 }
+            });
+
+            Plotly.newPlot('subView4', [], {
+                title: '굴절 정보',
+                annotations: [{
+                    text: `공기(n=1.0) → LTO(n=${ltoRefractiveIndex}) → 렌즈(n=${refractiveIndex}) → ML기판(n=${refractiveIndex})<br>LTO 두께: ${ltoThickness.toFixed(3)}μm<br>입사각: θ=${incidenceTheta}°, φ=${incidencePhi}°`,
+                    xref: 'paper', yref: 'paper', x: 0.5, y: 0.5, showarrow: false,
+                    font: { size: 14 }, align: 'center'
+                }]
+            });
+        }
+
+        // 3D 광선 추적 플롯 (ML과 LTO 표면 + 개선된 굴절)
+        function plotRay3D(data, colormap) {
+            document.getElementById('multiViewContainer').style.display = 'none';
+            document.getElementById('plot').parentElement.style.display = 'block';
+
+            const config = document.getElementById('arrayConfig').value;
+            const [rows, cols] = config.split('x').map(Number);
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const numRays = parseInt(document.getElementById('numRays').value);
+            const refractiveIndex = parseFloat(document.getElementById('refractiveIndex').value);
+            const propagationDistance = parseFloat(document.getElementById('propagationDistance').value);
+            const raySpacing = parseFloat(document.getElementById('raySpacing').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            const ltoThickness = parseFloat(document.getElementById('ltoThickness').value);
+            const ltoRefractiveIndex = parseFloat(document.getElementById('ltoRefractiveIndex').value);
+            const incidenceTheta = parseFloat(document.getElementById('incidenceTheta').value);
+            const incidencePhi = parseFloat(document.getElementById('incidencePhi').value);
+
+            // 사광 입사 방향 계산
+            const incidentDirection = calculateIncidentDirection(incidenceTheta, incidencePhi);
+
+            const traces = [];
+            const allEndPoints = [];
+
+            // ML 표면
+            traces.push({
+                x: data.x,
+                y: data.y[0],
+                z: data.mlSurface,
+                type: 'surface',
+                colorscale: 'Blues',
+                opacity: 0.6,
+                showscale: false,
+                name: 'ML Surface'
+            });
+
+            // LTO 표면
+            traces.push({
+                x: data.x,
+                y: data.y[0],
+                z: data.ltoSurface,
+                type: 'surface',
+                colorscale: 'Reds',
+                opacity: 0.4,
+                showscale: false,
+                name: 'LTO Surface'
+            });
+
+            // 광선 추적
+            const colors = ['green', 'orange', 'purple', 'brown', 'pink', 'yellow', 'cyan', 'magenta'];
+            let rayIndex = 0;
+
+            const totalWidth = cols * spacingX;
+            const totalHeight = rows * spacingY;
+            const raysPerSide = Math.round(Math.sqrt(numRays));
+
+            const rayStepX = totalWidth * raySpacing / (raysPerSide - 1);
+            const rayStepY = totalHeight * raySpacing / (raysPerSide - 1);
+
+            for (let i = 0; i < raysPerSide; i++) {
+                for (let j = 0; j < raysPerSide; j++) {
+                    const targetX = (i - (raysPerSide-1)/2) * rayStepX; // 렌즈에 도달할 목표 위치
+                    const targetY = (j - (raysPerSide-1)/2) * rayStepY;
+
+                    // 사광 입사를 고려한 실제 시작점 계산
+                    const startHeight = h + ltoThickness + 0.1;
+                    const startPos = calculateStartPosition(targetX, targetY, incidentDirection, startHeight);
+
+                    const rayResult = traceRayThroughLensArray(
+                        startPos.startX, startPos.startY, config, spacingX, spacingY,
+                        Rx, Ry, h, n, alpha, refractiveIndex, propagationDistance, ltoThickness, ltoRefractiveIndex, incidentDirection
+                    );
+
+                    const rayX = rayResult.path.map(p => p.x);
+                    const rayY = rayResult.path.map(p => p.y);
+                    const rayZ = rayResult.path.map(p => p.z);
+
+                    traces.push({
+                        x: rayX,
+                        y: rayY,
+                        z: rayZ,
+                        type: 'scatter3d',
+                        mode: 'lines+markers',
+                        name: `광선 ${rayIndex+1}`,
+                        line: { color: colors[rayIndex % colors.length], width: 4 },
+                        marker: { size: 3 },
+                        showlegend: false
+                    });
+
+                    if (rayResult.focused) {
+                        allEndPoints.push(rayResult);
+                    }
+
+                    rayIndex++;
+                    if (rayIndex >= 50) break;
+                }
+                if (rayIndex >= 50) break;
+            }
+
+            // 집속점 계산 및 표시
+            const globalFocalPoint = calculateFocalPoint(allEndPoints);
+            let focalInfo = "집속점 정보 없음";
+
+            if (globalFocalPoint) {
+                focalInfo = `집속점: (${globalFocalPoint.x.toFixed(3)}, ${globalFocalPoint.y.toFixed(3)}, ${globalFocalPoint.z.toFixed(3)}) μm | ${globalFocalPoint.count}개 광선 집속`;
+
+                traces.push({
+                    x: [globalFocalPoint.x],
+                    y: [globalFocalPoint.y],
+                    z: [globalFocalPoint.z],
+                    type: 'scatter3d',
+                    mode: 'markers',
+                    name: '집속점',
+                    marker: {
+                        size: 15,
+                        color: 'red',
+                        symbol: 'diamond'
+                    },
+                    showlegend: true
+                });
+            }
+
+            const layout = {
+                title: `3D 광선 추적 - ML(파랑) + LTO(빨강) + 사광입사 (θ=${incidenceTheta}°, φ=${incidencePhi}°)<br><span style="font-size:12px">${focalInfo}</span>`,
+                scene: {
+                    xaxis: { title: 'X (μm)' },
+                    yaxis: { title: 'Y (μm)' },
+                    zaxis: { title: 'Z (μm)' },
+                    aspectmode: 'data'
+                },
+                showlegend: true
+            };
+
+            Plotly.newPlot('plot', traces, layout);
+        }
+
+        // 설정 관련 함수들
+        async function copyConfigurationToClipboard() {
+            const config = {
+                arrayConfig: document.getElementById('arrayConfig').value,
+                spacingX: parseFloat(document.getElementById('spacingX').value),
+                spacingY: parseFloat(document.getElementById('spacingY').value),
+                Rx: parseFloat(document.getElementById('Rx').value),
+                Ry: parseFloat(document.getElementById('Ry').value),
+                h: parseFloat(document.getElementById('h').value),
+                n: parseFloat(document.getElementById('n').value),
+                alpha: parseFloat(document.getElementById('alpha').value),
+                resolution: parseInt(document.getElementById('resolution').value),
+                colormap: document.getElementById('colormap').value,
+                numRays: parseInt(document.getElementById('numRays').value),
+                refractiveIndex: parseFloat(document.getElementById('refractiveIndex').value),
+                propagationDistance: parseFloat(document.getElementById('propagationDistance').value),
+                raySpacing: parseFloat(document.getElementById('raySpacing').value),
+                ltoThickness: parseFloat(document.getElementById('ltoThickness').value),
+                ltoRefractiveIndex: parseFloat(document.getElementById('ltoRefractiveIndex').value),
+                incidenceTheta: parseFloat(document.getElementById('incidenceTheta').value),
+                incidencePhi: parseFloat(document.getElementById('incidencePhi').value),
+                exportDate: new Date().toISOString(),
+                version: '2.3'
+            };
+
+            const configText = JSON.stringify(config, null, 2);
+
+            try {
+                await navigator.clipboard.writeText(configText);
+                document.getElementById('configTextarea').value = configText;
+
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ 복사됨!';
+                button.style.background = '#27ae60';
+
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+
+            } catch (err) {
+                document.getElementById('configTextarea').value = configText;
+                document.getElementById('configTextarea').select();
+                alert('설정이 텍스트 영역에 표시되었습니다. 수동으로 복사해주세요.');
+            }
+        }
+
+        function applyConfiguration() {
+            const configText = document.getElementById('configTextarea').value.trim();
+
+            if (!configText) {
+                alert('설정 텍스트를 입력해주세요.');
+                return;
+            }
+
+            try {
+                const config = JSON.parse(configText);
+
+                if (config.arrayConfig) document.getElementById('arrayConfig').value = config.arrayConfig;
+                if (config.spacingX !== undefined) {
+                    document.getElementById('spacingX').value = config.spacingX;
+                    updateValueDisplay('spacingX', config.spacingX);
+                }
+                if (config.spacingY !== undefined) {
+                    document.getElementById('spacingY').value = config.spacingY;
+                    updateValueDisplay('spacingY', config.spacingY);
+                }
+                if (config.Rx !== undefined) {
+                    document.getElementById('Rx').value = config.Rx;
+                    updateValueDisplay('Rx', config.Rx);
+                }
+                if (config.Ry !== undefined) {
+                    document.getElementById('Ry').value = config.Ry;
+                    updateValueDisplay('Ry', config.Ry);
+                }
+                if (config.h !== undefined) {
+                    document.getElementById('h').value = config.h;
+                    updateValueDisplay('h', config.h);
+                }
+                if (config.n !== undefined) {
+                    document.getElementById('n').value = config.n;
+                    updateValueDisplay('n', config.n);
+                }
+                if (config.alpha !== undefined) {
+                    document.getElementById('alpha').value = config.alpha;
+                    updateValueDisplay('alpha', config.alpha);
+                }
+                if (config.resolution !== undefined) {
+                    document.getElementById('resolution').value = config.resolution;
+                    updateValueDisplay('resolution', config.resolution);
+                }
+                if (config.colormap) document.getElementById('colormap').value = config.colormap;
+                if (config.numRays !== undefined) {
+                    document.getElementById('numRays').value = config.numRays;
+                    updateValueDisplay('numRays', config.numRays);
+                }
+                if (config.refractiveIndex !== undefined) {
+                    document.getElementById('refractiveIndex').value = config.refractiveIndex;
+                    updateValueDisplay('refractiveIndex', config.refractiveIndex);
+                }
+                if (config.propagationDistance !== undefined) {
+                    document.getElementById('propagationDistance').value = config.propagationDistance;
+                    updateValueDisplay('propagationDistance', config.propagationDistance);
+                }
+                if (config.raySpacing !== undefined) {
+                    document.getElementById('raySpacing').value = config.raySpacing;
+                    updateValueDisplay('raySpacing', config.raySpacing);
+                }
+                if (config.ltoThickness !== undefined) {
+                    document.getElementById('ltoThickness').value = config.ltoThickness;
+                    updateValueDisplay('ltoThickness', config.ltoThickness);
+                }
+                if (config.ltoRefractiveIndex !== undefined) {
+                    document.getElementById('ltoRefractiveIndex').value = config.ltoRefractiveIndex;
+                    updateValueDisplay('ltoRefractiveIndex', config.ltoRefractiveIndex);
+                }
+                if (config.incidenceTheta !== undefined) {
+                    document.getElementById('incidenceTheta').value = config.incidenceTheta;
+                    updateValueDisplay('incidenceTheta', config.incidenceTheta);
+                }
+                if (config.incidencePhi !== undefined) {
+                    document.getElementById('incidencePhi').value = config.incidencePhi;
+                    updateValueDisplay('incidencePhi', config.incidencePhi);
+                }
+
+                updatePlot();
+
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✅ 적용됨!';
+                button.style.background = '#27ae60';
+
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '';
+                }, 2000);
+
+            } catch (error) {
+                alert('설정 형식이 올바르지 않습니다: ' + error.message);
+            }
+        }
+
+        function resetToDefaults() {
+            document.getElementById('arrayConfig').value = '1x1';
+            document.getElementById('spacingX').value = 1.0;
+            document.getElementById('spacingY').value = 1.0;
+            document.getElementById('Rx').value = 0.6;
+            document.getElementById('Ry').value = 0.6;
+            document.getElementById('h').value = 0.5;
+            document.getElementById('n').value = 2.0;
+            document.getElementById('alpha').value = 1.0;
+            document.getElementById('resolution').value = 50;
+            document.getElementById('colormap').value = 'Viridis';
+            document.getElementById('numRays').value = 20;
+            document.getElementById('refractiveIndex').value = 1.5;
+            document.getElementById('propagationDistance').value = 2;
+            document.getElementById('raySpacing').value = 0.9;
+            document.getElementById('ltoThickness').value = 0.1;
+            document.getElementById('ltoRefractiveIndex').value = 1.46;
+            document.getElementById('incidenceTheta').value = 0;
+            document.getElementById('incidencePhi').value = 0;
+
+            updateValueDisplay('spacingX', 1.0);
+            updateValueDisplay('spacingY', 1.0);
+            updateValueDisplay('Rx', 0.6);
+            updateValueDisplay('Ry', 0.6);
+            updateValueDisplay('h', 0.5);
+            updateValueDisplay('n', 2.0);
+            updateValueDisplay('alpha', 1.0);
+            updateValueDisplay('resolution', 50);
+            updateValueDisplay('numRays', 20);
+            updateValueDisplay('refractiveIndex', 1.5);
+            updateValueDisplay('propagationDistance', 2);
+            updateValueDisplay('raySpacing', 0.9);
+            updateValueDisplay('ltoThickness', 0.1);
+            updateValueDisplay('ltoRefractiveIndex', 1.46);
+            updateValueDisplay('incidenceTheta', 0);
+            updateValueDisplay('incidencePhi', 0);
+
+            updatePlot();
+        }
+
+        // 메인 업데이트 함수
+        function updatePlot() {
+            const config = document.getElementById('arrayConfig').value;
+            const Rx = parseFloat(document.getElementById('Rx').value);
+            const Ry = parseFloat(document.getElementById('Ry').value);
+            const h = parseFloat(document.getElementById('h').value);
+            const n = parseFloat(document.getElementById('n').value);
+            const alpha = parseFloat(document.getElementById('alpha').value);
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const spacingX = parseFloat(document.getElementById('spacingX').value);
+            const spacingY = parseFloat(document.getElementById('spacingY').value);
+            const colormap = document.getElementById('colormap').value;
+            const ltoThickness = parseFloat(document.getElementById('ltoThickness').value);
+
+            const data = generateSeparatedSurfaces(config, Rx, Ry, h, n, alpha, resolution, spacingX, spacingY, ltoThickness);
+
+            switch (currentView) {
+                case 'Contour':
+                    plotContour(data, colormap);
+                    break;
+                case '2D':
+                    plot2D(data, colormap);
+                    break;
+                case '3D':
+                    plot3D(data, colormap);
+                    break;
+                case 'Ray2D':
+                    plotRay2D(data, colormap);
+                    break;
+                case 'Ray3D':
+                    plotRay3D(data, colormap);
+                    break;
+            }
+        }
+
+        function updateViewButtons() {
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (currentView === 'Contour') {
+                document.getElementById('viewContour').classList.add('active');
+            } else if (currentView === '2D') {
+                document.getElementById('view2D').classList.add('active');
+            } else if (currentView === '3D') {
+                document.getElementById('view3D').classList.add('active');
+            } else if (currentView === 'Ray2D') {
+                document.getElementById('viewRay2D').classList.add('active');
+            } else if (currentView === 'Ray3D') {
+                document.getElementById('viewRay3D').classList.add('active');
+            }
+        }
+
+        // 이벤트 리스너 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            // 슬라이더 이벤트
+            ['Rx', 'Ry', 'h', 'n', 'alpha', 'resolution', 'spacingX', 'spacingY', 'numRays', 'refractiveIndex', 'propagationDistance', 'raySpacing', 'ltoThickness', 'ltoRefractiveIndex', 'incidenceTheta', 'incidencePhi'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        updateValueDisplay(id, this.value);
+                        updatePlot();
+                    });
+                    updateValueDisplay(id, element.value);
+                }
+            });
+
+            // 선택 박스 이벤트
+            ['arrayConfig', 'colormap'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updatePlot);
+            });
+
+            // 뷰 버튼 이벤트
+            document.getElementById('viewContour').addEventListener('click', function() {
+                currentView = 'Contour';
+                updateViewButtons();
+                updatePlot();
+            });
+
+            document.getElementById('view2D').addEventListener('click', function() {
+                currentView = '2D';
+                updateViewButtons();
+                updatePlot();
+            });
+
+            document.getElementById('view3D').addEventListener('click', function() {
+                currentView = '3D';
+                updateViewButtons();
+                updatePlot();
+            });
+
+            document.getElementById('viewRay2D').addEventListener('click', function() {
+                currentView = 'Ray2D';
+                updateViewButtons();
+                updatePlot();
+            });
+
+            document.getElementById('viewRay3D').addEventListener('click', function() {
+                currentView = 'Ray3D';
+                updateViewButtons();
+                updatePlot();
+            });
+
+            // 초기 플롯 생성
+            updatePlot();
+        });
+    </script>
+</body>
+</html>
